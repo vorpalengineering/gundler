@@ -3,5 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("Gundler")
+	fmt.Println("Starting Gundler...")
+
+	fmt.Println("Gundler Startup Complete")
 }
