@@ -63,11 +63,11 @@ func (userOp *UserOperation) Pack() *PackedUserOperation {
 func packAccountGasLimits(verificationGasLimit *big.Int, callGasLimit *big.Int) [32]byte {
 	var accountGasLimits [32]byte
 
-	//convert to bytes for concatenation
+	// Convert to bytes for concatenation
 	verificationGasLimitBytes := verificationGasLimit.Bytes()
 	callGasLimitBytes := callGasLimit.Bytes()
 
-	//copy into byte array (right-aligned)
+	// Copy into byte array (right-aligned)
 	copy(accountGasLimits[16-len(verificationGasLimitBytes):16], verificationGasLimitBytes)
 	copy(accountGasLimits[32-len(callGasLimitBytes):32], callGasLimitBytes)
 
@@ -77,11 +77,11 @@ func packAccountGasLimits(verificationGasLimit *big.Int, callGasLimit *big.Int) 
 func packGasFees(maxPriorityFeePerGas *big.Int, maxFeePerGas *big.Int) [32]byte {
 	var gasFees [32]byte
 
-	//convert to bytes for concatenation
+	// Convert to bytes for concatenation
 	maxPriorityFeePerGasBytes := maxPriorityFeePerGas.Bytes()
 	maxFeePerGasBytes := maxFeePerGas.Bytes()
 
-	//copy into byte array (right-aligned)
+	// Copy into byte array (right-aligned)
 	copy(gasFees[16-len(maxPriorityFeePerGasBytes):16], maxPriorityFeePerGasBytes)
 	copy(gasFees[32-len(maxFeePerGasBytes):32], maxFeePerGasBytes)
 
@@ -94,7 +94,7 @@ func packPaymasterAndData(
 	paymasterPostOpGasLimit *big.Int,
 	paymasterData []byte,
 ) []byte {
-	//Return empty byte array if no paymaster address
+	// Return empty byte array if no paymaster address
 	if (paymaster == common.Address{}) {
 		return []byte{}
 	}
@@ -105,12 +105,12 @@ func packPaymasterAndData(
 	// Bytes 52+: PaymasterData (variable)
 	var paymasterAndData []byte
 
-	//convert to bytes for concatenation
+	// Convert to bytes for concatenation
 	paymasterBytes := paymaster.Bytes()
 	paymasterVerificationGasLimitBytes := paymasterVerificationGasLimit.Bytes()
 	paymasterPostOpGasLimitBytes := paymasterPostOpGasLimit.Bytes()
 
-	//copy into byte array (right-aligned)
+	// Copy into byte array (right-aligned)
 	copy(paymasterAndData[20-len(paymasterBytes):20], paymasterBytes)
 	copy(paymasterAndData[35-len(paymasterVerificationGasLimitBytes):35], paymasterVerificationGasLimitBytes)
 	copy(paymasterAndData[51-len(paymasterPostOpGasLimitBytes):51], paymasterPostOpGasLimitBytes)

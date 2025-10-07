@@ -21,7 +21,7 @@ var (
 func NewEntryPoint(version string) (*EntryPoint, error) {
 	var entryPointAddress common.Address
 
-	// select address based on version
+	// Select address based on version
 	switch version {
 	case "V06":
 		entryPointAddress = EntryPointV06Address
@@ -33,7 +33,7 @@ func NewEntryPoint(version string) (*EntryPoint, error) {
 		return nil, fmt.Errorf("unsupported EntryPoint version: %s", version)
 	}
 
-	//construct EntryPoint
+	// Construct EntryPoint
 	return &EntryPoint{
 		Address: entryPointAddress,
 		Version: version,
