@@ -45,3 +45,12 @@ func (cfg *Config) Validate() error {
 
 	return nil
 }
+
+func (cfg *Config) Print() {
+	// Print config summary
+	fmt.Println("Gundler Config:")
+	fmt.Println("===============")
+	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
+	fmt.Printf("Chain ID: %v\n", cfg.ChainID)
+	fmt.Println("===============")
+}

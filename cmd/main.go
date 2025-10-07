@@ -16,7 +16,8 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
+	// Print config
+	cfg.Print()
 
 	fmt.Println("Gundler Startup Complete")
 }
