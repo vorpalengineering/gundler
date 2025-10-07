@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	EthereumRPC string `json:"ethereum_rpc"`
+	ChainID     uint64 `json:"chain_id"`
 }
 
 func Load() (*Config, error) {
@@ -15,12 +16,14 @@ func Load() (*Config, error) {
 
 	// Define flags
 	rpc := flag.String("rpc", "", "Ethereum RPC URL")
+	chainID := flag.Uint64("chain-id", 0, "Chain ID")
 
 	// Parse all defined flags
 	flag.Parse()
 
 	// Set flags into config
 	config.EthereumRPC = *rpc
+	config.ChainID = *chainID
 
 	// Validate config
 	err := config.Validate()
@@ -35,6 +38,9 @@ func (cfg *Config) Validate() error {
 	// Check required flags
 	if cfg.EthereumRPC == "" {
 		return fmt.Errorf("ethereum rpc is required")
+	}
+	if cfg.ChainID == 0 {
+		return fmt.Errorf("chain id is required")
 	}
 
 	return nil
