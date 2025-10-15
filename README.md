@@ -21,7 +21,7 @@ eth_getUserOperationReceipt
 ### Setup
 
 ```bash
-go run cmd/main.go --rpc https://rpc.testnet.telos.net --chain-id 41
+go run cmd/main.go --rpc https://rpc.testnet.telos.net
 ```
 
 ### Flags
@@ -29,7 +29,6 @@ go run cmd/main.go --rpc https://rpc.testnet.telos.net --chain-id 41
 | Flag | Name | Default |
 | :------- | :------: | -------: |
 | --rpc | RPC URL | None  |
-| --chain-id | Chain ID | None |
 | --port | Port | 3000 |
 
 ### Curl Commands

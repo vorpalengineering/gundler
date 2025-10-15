@@ -59,7 +59,7 @@ func New(port uint, ethRPC string) (*RPCServer, error) {
 	}
 
 	// Register base route
-	mux.HandleFunc("/", rpc.handleRPC)
+	mux.HandleFunc("/", rpc.handleRPCRequest)
 
 	return rpc, nil
 }
@@ -87,7 +87,7 @@ func (rpc *RPCServer) Shutdown(ctx context.Context) error {
 	return rpc.server.Shutdown(ctx)
 }
 
-func (rpc *RPCServer) handleRPC(w http.ResponseWriter, r *http.Request) {
+func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	// Restrict to POST requests
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -108,6 +108,8 @@ func (rpc *RPCServer) handleRPC(w http.ResponseWriter, r *http.Request) {
 	switch req.Method {
 	case "eth_chainId":
 		result, err = rpc.handleChainId()
+	case "eth_supportedEntryPoints":
+		result, err = rpc.handleSupportedEntryPoints()
 	default:
 		err = &RPCError{
 			Code:    -32601,
@@ -158,4 +160,11 @@ func (rpc *RPCServer) handleChainId() (string, *RPCError) {
 	}
 
 	return fmt.Sprintf("0x%x", chainID), nil
+}
+
+func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *RPCError) {
+	return []string{
+		"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // v0.6
+		"0x0000000071727De22E5E9d8BAf0edAc6f37da032", //v0.7
+	}, nil
 }
