@@ -67,7 +67,7 @@ func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
 	})
 
 	// Initialize mempool
-	mempool := mempool.New()
+	mempool := mempool.NewMempool()
 
 	rpc := &RPCServer{
 		server: &http.Server{

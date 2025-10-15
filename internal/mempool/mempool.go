@@ -10,10 +10,11 @@ import (
 type Mempool struct {
 	mutex   sync.RWMutex
 	userOps []*types.UserOperation
-	// userOpHashes map[common.Hash]int // UserOperation Hash => mempool index
+	// userOpsByHash map[common.Hash]int
+	// userOpsBySender map[common.Address]*types.UserOperation
 }
 
-func New() *Mempool {
+func NewMempool() *Mempool {
 	return &Mempool{
 		userOps: make([]*types.UserOperation, 0),
 	}
