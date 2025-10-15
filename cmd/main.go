@@ -16,7 +16,7 @@ import (
 func main() {
 	fmt.Println("Starting Gundler...")
 
-	// Setup config
+	// Load config
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -25,11 +25,8 @@ func main() {
 	// Print config
 	cfg.Print()
 
-	// Create and Start RPC Server
-	rpc, err := rpc.New()
-	if err != nil {
-		log.Fatalf("Failed to create RPC Server: %v", err)
-	}
+	// Start RPC Server
+	rpc := rpc.New()
 	if err := rpc.Start(); err != nil {
 		log.Fatalf("Failed to start RPC Server: %v", err)
 	}

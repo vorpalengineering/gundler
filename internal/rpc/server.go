@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,32 +12,46 @@ type RPCServer struct {
 	server *http.Server
 }
 
-func New() (*RPCServer, error) {
-	// Initialize multiplexer
+type RPCRequest struct {
+	JSONRPC string          `json:"jsonrpc"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params"`
+	ID      any             `json:"id"`
+}
+
+type RPCResponse struct {
+	JSONRPC string    `json:"jsonrpc"`
+	Result  any       `json:"result,omitempty"`
+	Error   *RPCError `json:"error,omitempty"`
+	ID      any       `json:"id"`
+}
+
+type RPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func New() *RPCServer {
+	// Initialize mux handler
 	mux := http.NewServeMux()
 
 	// Register healthcheck route
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Received healthcheck request")
-		fmt.Printf("Header: %v\n", r.Header)
-
-		// Write response
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	// Register base route
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Gundler RPC Server"))
-	})
-
-	return &RPCServer{
+	rpc := &RPCServer{
 		server: &http.Server{
 			Addr:    "localhost:8080",
 			Handler: mux,
 		},
-	}, nil
+	}
+
+	// Register base route
+	mux.HandleFunc("/", rpc.handleRPC)
+
+	return rpc
 }
 
 func (rpc *RPCServer) Start() error {
@@ -54,4 +69,9 @@ func (rpc *RPCServer) Start() error {
 func (rpc *RPCServer) Shutdown(ctx context.Context) error {
 	fmt.Println("Shutting down RPC Server...")
 	return rpc.server.Shutdown(ctx)
+}
+
+func (rpc *RPCServer) handleRPC(w http.ResponseWriter, r *http.Request) {
+	// Restrict to POST requests
+	fmt.Println("\nHandling RPC Request")
 }
