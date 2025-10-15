@@ -9,12 +9,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/vorpalengineering/gundler/internal/mempool"
 	"github.com/vorpalengineering/gundler/internal/types"
 )
 
 type RPCServer struct {
 	server    *http.Server
 	ethClient *ethclient.Client
+	mempool   *mempool.Mempool
 }
 
 type RPCRequest struct {
@@ -52,12 +54,16 @@ func New(port uint, ethRPC string) (*RPCServer, error) {
 		w.Write([]byte("OK"))
 	})
 
+	// Initialize mempool
+	mempool := mempool.New()
+
 	rpc := &RPCServer{
 		server: &http.Server{
 			Addr:    fmt.Sprintf("localhost:%v", port),
 			Handler: mux,
 		},
 		ethClient: ethClient,
+		mempool:   mempool,
 	}
 
 	// Register base route
@@ -211,8 +217,15 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	_ = entryPoint
 
 	// TODO: Validate UserOperation
-	// TODO: Add to mempool
-	// TODO: Return userOp hash
 
+	// Add to mempool
+	if err := rpc.mempool.Add(&userOp); err != nil {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: fmt.Sprintf("Failed adding userOp to mempool: %v", err),
+		}
+	}
+
+	// TODO: Return userOp hash
 	return "0x0000000000000000000000000000000000000000000000000000000000000000", nil
 }
