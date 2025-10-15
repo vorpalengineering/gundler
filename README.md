@@ -35,5 +35,15 @@ go run cmd/main.go --rpc https://rpc.testnet.telos.net --chain-id 41
 
 ```bash
 # Healthcheck
-curl http://localhost:8080/health
+curl http://localhost:3000/health
+
+# eth_chainId Method
+curl -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+
+# eth_supportedEntryPoints Method
+curl -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"eth_supportedEntryPoints","params":[],"id":2}'
 ```
