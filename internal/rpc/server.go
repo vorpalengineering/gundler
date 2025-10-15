@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/vorpalengineering/gundler/internal/types"
 )
 
 type RPCServer struct {
@@ -110,6 +111,8 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 		result, err = rpc.handleChainId()
 	case "eth_supportedEntryPoints":
 		result, err = rpc.handleSupportedEntryPoints()
+	case "eth_sendUserOperation":
+		result, err = rpc.handleSendUserOperation(req.Params)
 	default:
 		err = &RPCError{
 			Code:    -32601,
@@ -165,6 +168,40 @@ func (rpc *RPCServer) handleChainId() (string, *RPCError) {
 func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *RPCError) {
 	return []string{
 		"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // v0.6
-		"0x0000000071727De22E5E9d8BAf0edAc6f37da032", //v0.7
+		"0x0000000071727De22E5E9d8BAf0edAc6f37da032", // v0.7
 	}, nil
+}
+
+func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *RPCError) {
+	// Parse json params
+	var rawParams []json.RawMessage
+	if err := json.Unmarshal(params, &rawParams); err != nil {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: "Invalid parameters",
+		}
+	}
+
+	if len(rawParams) != 2 {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: "Expected 2 parameters: [userOp, entryPoint]",
+		}
+	}
+
+	// Parse UserOperation from rawParams[0]
+	var userOp types.UserOperation
+	if err := json.Unmarshal(rawParams[0], &userOp); err != nil {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: "Error unmarshalling userOp",
+		}
+	}
+
+	// TODO: Parse EntryPoint address from rawParams[1]
+	// TODO: Validate UserOperation
+	// TODO: Add to mempool
+	// TODO: Return userOp hash
+
+	return "0x0000000000000000000000000000000000000000000000000000000000000000", nil
 }

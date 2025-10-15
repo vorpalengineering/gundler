@@ -1,9 +1,13 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type UserOperation struct {
@@ -58,6 +62,85 @@ func (userOp *UserOperation) Pack() *PackedUserOperation {
 		),
 		Signature: userOp.Signature,
 	}
+}
+
+func (userOp *UserOperation) UnmarshalJSON(data []byte) error {
+	// Intermediate struct with string fields
+	type IntermediateUserOperation struct {
+		Sender                        string `json:"sender"`
+		Nonce                         string `json:"nonce"`
+		Factory                       string `json:"factory"`
+		FactoryData                   string `json:"factoryData"`
+		CallData                      string `json:"callData"`
+		CallGasLimit                  string `json:"callGasLimit"`
+		VerificationGasLimit          string `json:"verificationGasLimit"`
+		PreVerificationGas            string `json:"preVerificationGas"`
+		MaxFeePerGas                  string `json:"maxFeePerGas"`
+		MaxPriorityFeePerGas          string `json:"maxPriorityFeePerGas"`
+		Paymaster                     string `json:"paymaster"`
+		PaymasterVerificationGasLimit string `json:"paymasterVerificationGasLimit"`
+		PaymasterPostOpGasLimit       string `json:"paymasterPostOpGasLimit"`
+		PaymasterData                 string `json:"paymasterData"`
+		Signature                     string `json:"signature"`
+	}
+
+	var imd IntermediateUserOperation
+	if err := json.Unmarshal(data, &imd); err != nil {
+		return err
+	}
+
+	// Parse addresses
+	userOp.Sender = common.HexToAddress(imd.Sender)
+	userOp.Factory = common.HexToAddress(imd.Factory)
+	userOp.Paymaster = common.HexToAddress(imd.Paymaster)
+
+	// Parse BigInts
+	var ok bool
+	userOp.Nonce, ok = new(big.Int).SetString(strings.TrimPrefix(imd.Nonce, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling nonce")
+	}
+	userOp.CallGasLimit, ok = new(big.Int).SetString(strings.TrimPrefix(imd.CallGasLimit, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling callGasLimit")
+	}
+	userOp.VerificationGasLimit, ok = new(big.Int).SetString(strings.TrimPrefix(imd.VerificationGasLimit, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling verificationGasLimit")
+	}
+	userOp.PreVerificationGas, ok = new(big.Int).SetString(strings.TrimPrefix(imd.PreVerificationGas, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling preVerificationGas")
+	}
+	userOp.MaxFeePerGas, ok = new(big.Int).SetString(strings.TrimPrefix(imd.MaxFeePerGas, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling maxFeePerGas")
+	}
+	userOp.MaxPriorityFeePerGas, ok = new(big.Int).SetString(strings.TrimPrefix(imd.MaxPriorityFeePerGas, "0x"), 16)
+	if !ok {
+		return fmt.Errorf("error unmarshalling maxPriorityFeePerGas")
+	}
+
+	// Parse byte arrays
+	var err error
+	userOp.FactoryData, err = hexutil.Decode(imd.FactoryData)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling factoryData: %w", err)
+	}
+	userOp.CallData, err = hexutil.Decode(imd.CallData)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling callData: %w", err)
+	}
+	userOp.PaymasterData, err = hexutil.Decode(imd.PaymasterData)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling paymasterData: %w", err)
+	}
+	userOp.Signature, err = hexutil.Decode(imd.Signature)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling signature: %w", err)
+	}
+
+	return nil
 }
 
 func packAccountGasLimits(verificationGasLimit *big.Int, callGasLimit *big.Int) [32]byte {
