@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/types"
 )
@@ -198,7 +199,17 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 		}
 	}
 
-	// TODO: Parse EntryPoint address from rawParams[1]
+	// Parse EntryPoint address from rawParams[1]
+	var entryPointStr string
+	if err := json.Unmarshal(rawParams[1], &entryPointStr); err != nil {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: "Error unmarshalling entryPoint",
+		}
+	}
+	entryPoint := common.HexToAddress(entryPointStr)
+	_ = entryPoint
+
 	// TODO: Validate UserOperation
 	// TODO: Add to mempool
 	// TODO: Return userOp hash
