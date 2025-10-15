@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type RPCServer struct {
-	server *http.Server
+	server    *http.Server
+	ethClient *ethclient.Client
 }
 
 type RPCRequest struct {
@@ -31,7 +34,13 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func New(port uint) *RPCServer {
+func New(port uint, ethRPC string) (*RPCServer, error) {
+	// Dial ethereum client
+	ethClient, err := ethclient.Dial(ethRPC)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to ethereum client: %w", err)
+	}
+
 	// Initialize mux handler
 	mux := http.NewServeMux()
 
@@ -46,12 +55,13 @@ func New(port uint) *RPCServer {
 			Addr:    fmt.Sprintf("localhost:%v", port),
 			Handler: mux,
 		},
+		ethClient: ethClient,
 	}
 
 	// Register base route
 	mux.HandleFunc("/", rpc.handleRPC)
 
-	return rpc
+	return rpc, nil
 }
 
 func (rpc *RPCServer) Start() error {
@@ -68,6 +78,12 @@ func (rpc *RPCServer) Start() error {
 
 func (rpc *RPCServer) Shutdown(ctx context.Context) error {
 	fmt.Println("Shutting down RPC Server...")
+
+	// Close ethereum client connection
+	if rpc.ethClient != nil {
+		rpc.ethClient.Close()
+	}
+
 	return rpc.server.Shutdown(ctx)
 }
 
@@ -91,7 +107,7 @@ func (rpc *RPCServer) handleRPC(w http.ResponseWriter, r *http.Request) {
 
 	switch req.Method {
 	case "eth_chainId":
-		result = rpc.handleChainId()
+		result, err = rpc.handleChainId()
 	default:
 		err = &RPCError{
 			Code:    -32601,
@@ -131,6 +147,15 @@ func (rpc *RPCServer) sendError(w http.ResponseWriter, id any, code int, message
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (rpc *RPCServer) handleChainId() string {
-	return "0x1"
+func (rpc *RPCServer) handleChainId() (string, *RPCError) {
+	ctx := context.Background()
+	chainID, err := rpc.ethClient.ChainID(ctx)
+	if err != nil {
+		return "", &RPCError{
+			Code:    -32000,
+			Message: fmt.Sprintf("failed to get chain id: %v", err),
+		}
+	}
+
+	return fmt.Sprintf("0x%x", chainID), nil
 }

@@ -26,7 +26,10 @@ func main() {
 	cfg.Print()
 
 	// Start RPC Server
-	rpc := rpc.New(cfg.Port)
+	rpc, err := rpc.New(cfg.Port, cfg.EthereumRPC)
+	if err != nil {
+		log.Fatalf("Failed to create RPC Server: %v", err)
+	}
 	if err := rpc.Start(); err != nil {
 		log.Fatalf("Failed to start RPC Server: %v", err)
 	}
@@ -48,5 +51,5 @@ func main() {
 		log.Fatalf("RPC Server forced to shutdown: %v", err)
 	}
 
-	fmt.Println("Guncler stopped")
+	fmt.Println("Gundler stopped")
 }
