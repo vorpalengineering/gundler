@@ -25,7 +25,7 @@ func (pool *Mempool) Add(userOp *types.UserOperation) error {
 	defer pool.mutex.Unlock()
 
 	// Validate user operation
-	if err := pool.validateOp(userOp); err != nil {
+	if err := pool.validateUserOp(userOp); err != nil {
 		return fmt.Errorf("userOp validation failed: %w", err)
 	}
 

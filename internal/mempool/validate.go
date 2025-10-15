@@ -7,7 +7,7 @@ import (
 	"github.com/vorpalengineering/gundler/internal/types"
 )
 
-func (pool *Mempool) validateOp(userOp *types.UserOperation) error {
+func (pool *Mempool) validateUserOp(userOp *types.UserOperation) error {
 	// Check sender
 	if userOp.Sender == (common.Address{}) {
 		return fmt.Errorf("invalid sender")
