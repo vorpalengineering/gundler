@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/vorpalengineering/gundler/internal/types"
@@ -23,7 +24,11 @@ func (pool *Mempool) Add(userOp *types.UserOperation) error {
 	pool.mutex.Lock()
 	defer pool.mutex.Unlock()
 
-	// TODO: Validate user operation
+	// Validate user operation
+	if err := pool.validateOp(userOp); err != nil {
+		return fmt.Errorf("userOp validation failed: %w", err)
+	}
+
 	// TODO: Check for duplicates
 	// TODO: Check pending userOps from sender
 

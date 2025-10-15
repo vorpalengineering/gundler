@@ -45,9 +45,8 @@ func (cfg *Config) Validate() error {
 
 func (cfg *Config) Print() {
 	// Print config summary
-	fmt.Println("Gundler Config:")
-	fmt.Println("===============")
+	fmt.Println("======= Gundler Config ========")
 	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
 	fmt.Printf("Port: %v\n", cfg.Port)
-	fmt.Println("===============")
+	fmt.Println("===============================")
 }

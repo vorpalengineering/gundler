@@ -227,7 +227,6 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 		}
 	}
 	entryPoint := common.HexToAddress(entryPointStr)
-	_ = entryPoint
 
 	// TODO: Validate UserOperation
 
