@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type UserOperation struct {
@@ -40,9 +41,34 @@ type PackedUserOperation struct {
 	Signature          []byte         `json:"signature"`
 }
 
-// TODO: implement
-func (userOp *UserOperation) Hash() common.Hash {
-	return common.Hash{}
+var PACKED_USEROP_TYPEHASH common.Hash = crypto.Keccak256Hash(
+	[]byte("PackedUserOperation(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData)"),
+)
+
+func (userOp *UserOperation) Hash(entryPoint common.Address, chainID *big.Int) common.Hash {
+	// Pack user operation
+	packed := userOp.Pack()
+
+	// Create the hash: keccak256(abi.encode(packedUserOp, entryPoint, chainId))
+	packedUserOpHash := crypto.Keccak256Hash(
+		PACKED_USEROP_TYPEHASH[:],
+		common.LeftPadBytes(packed.Sender[:], 32),
+		common.LeftPadBytes(packed.Nonce.Bytes(), 32),
+		crypto.Keccak256Hash(packed.InitCode).Bytes(),
+		crypto.Keccak256Hash(packed.CallData).Bytes(),
+		packed.AccountGasLimits[:],
+		common.LeftPadBytes(packed.PreVerificationGas.Bytes(), 32),
+		packed.GasFees[:],
+		crypto.Keccak256Hash(packed.PaymasterAndData).Bytes(),
+	)
+
+	finalHash := crypto.Keccak256Hash(
+		common.LeftPadBytes(packedUserOpHash[:], 32),
+		common.LeftPadBytes(entryPoint[:], 32),
+		common.LeftPadBytes(chainID.Bytes(), 32),
+	)
+
+	return finalHash
 }
 
 func (userOp *UserOperation) Pack() *PackedUserOperation {
