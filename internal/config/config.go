@@ -8,6 +8,7 @@ import (
 type Config struct {
 	EthereumRPC string `json:"ethereum_rpc"`
 	ChainID     uint64 `json:"chain_id"`
+	Port        uint   `json:"port"`
 }
 
 func Load() (*Config, error) {
@@ -17,6 +18,7 @@ func Load() (*Config, error) {
 	// Define flags
 	rpc := flag.String("rpc", "", "Ethereum RPC URL")
 	chainID := flag.Uint64("chain-id", 0, "Chain ID")
+	port := flag.Uint("port", 3000, "Port")
 
 	// Parse all defined flags
 	flag.Parse()
@@ -24,6 +26,7 @@ func Load() (*Config, error) {
 	// Set flags into config
 	config.EthereumRPC = *rpc
 	config.ChainID = *chainID
+	config.Port = *port
 
 	// Validate config
 	err := config.Validate()
@@ -52,5 +55,6 @@ func (cfg *Config) Print() {
 	fmt.Println("===============")
 	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
 	fmt.Printf("Chain ID: %v\n", cfg.ChainID)
+	fmt.Printf("Port: %v\n", cfg.Port)
 	fmt.Println("===============")
 }

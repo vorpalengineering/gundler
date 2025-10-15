@@ -31,7 +31,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func New() *RPCServer {
+func New(port uint) *RPCServer {
 	// Initialize mux handler
 	mux := http.NewServeMux()
 
@@ -43,7 +43,7 @@ func New() *RPCServer {
 
 	rpc := &RPCServer{
 		server: &http.Server{
-			Addr:    "localhost:3000",
+			Addr:    fmt.Sprintf("localhost:%v", port),
 			Handler: mux,
 		},
 	}
