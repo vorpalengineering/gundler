@@ -17,6 +17,7 @@ type RPCServer struct {
 	server    *http.Server
 	ethClient *ethclient.Client
 	mempool   *mempool.Mempool
+	cache     *Cache
 }
 
 type RPCRequest struct {
@@ -38,12 +39,23 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func New(port uint, ethRPC string) (*RPCServer, error) {
+func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
 	// Dial ethereum client
 	ethClient, err := ethclient.Dial(ethRPC)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to ethereum client: %w", err)
 	}
+
+	// Fetch chain id
+	ctx := context.Background()
+	chainID, err := ethClient.ChainID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chain id from rpc: %v", err)
+	}
+
+	// Initialize cache and set chain id
+	cache := NewCache()
+	cache.SetChainID(chainID)
 
 	// Initialize mux handler
 	mux := http.NewServeMux()
@@ -64,6 +76,7 @@ func New(port uint, ethRPC string) (*RPCServer, error) {
 		},
 		ethClient: ethClient,
 		mempool:   mempool,
+		cache:     cache,
 	}
 
 	// Register base route
@@ -226,6 +239,8 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 		}
 	}
 
-	// TODO: Return userOp hash
-	return "0x0000000000000000000000000000000000000000000000000000000000000000", nil
+	// Calculate userOp hash
+	userOpHash := userOp.Hash(entryPoint, rpc.cache.GetChainID())
+
+	return userOpHash.Hex(), nil
 }
