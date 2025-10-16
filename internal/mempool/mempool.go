@@ -49,6 +49,36 @@ func (pool *Mempool) RemoveByIndex(index int) {
 	}
 }
 
+func (pool *Mempool) GetAll() []*types.UserOperation {
+	// Acquire read lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	// Get all user operations in mempool
+	// Create a copy to avoid external modifications
+	ops := make([]*types.UserOperation, len(pool.userOps))
+	copy(ops, pool.userOps)
+
+	return ops
+}
+
+func (pool *Mempool) GetRange(begin int, end int) ([]*types.UserOperation, error) {
+	// Validate
+	if begin > end || end > len(pool.userOps) {
+		return nil, fmt.Errorf("invalid range bounds")
+	}
+
+	// Acquire read lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	// Get user operations in range (inclusive)
+	ops := make([]*types.UserOperation, end-begin)
+	copy(ops, pool.userOps[begin:end])
+
+	return ops, nil
+}
+
 func (pool *Mempool) Clear() {
 	// Acquire write lock
 	pool.mutex.Lock()
