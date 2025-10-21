@@ -2,21 +2,28 @@ package mempool
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/vorpalengineering/gundler/internal/types"
 )
 
 type Mempool struct {
-	mutex   sync.RWMutex
-	userOps []*types.UserOperation
-	// userOpsByHash map[common.Hash]int
+	mutex         sync.RWMutex
+	userOps       []*types.UserOperation
+	userOpsByHash map[common.Hash]*types.UserOperation
+	entryPoint    common.Address
+	chainID       *big.Int
 	// userOpsBySender map[common.Address]*types.UserOperation
 }
 
-func NewMempool() *Mempool {
+func NewMempool(entryPoint common.Address, chainID *big.Int) *Mempool {
 	return &Mempool{
-		userOps: make([]*types.UserOperation, 0),
+		userOps:       make([]*types.UserOperation, 0),
+		userOpsByHash: make(map[common.Hash]*types.UserOperation, 0),
+		entryPoint:    entryPoint,
+		chainID:       chainID,
 	}
 }
 
@@ -30,11 +37,18 @@ func (pool *Mempool) Add(userOp *types.UserOperation) error {
 		return fmt.Errorf("userOp validation failed: %w", err)
 	}
 
-	// TODO: Check for duplicates
+	// Check for duplicates
+	userOpHash := userOp.Hash(pool.entryPoint, pool.chainID)
+	_, exists := pool.userOpsByHash[userOpHash]
+	if exists {
+		return fmt.Errorf("duplicate userOp: %v", userOpHash)
+	}
+
 	// TODO: Check pending userOps from sender
 
 	// Append userop to array
 	pool.userOps = append(pool.userOps, userOp)
+	pool.userOpsByHash[userOpHash] = userOp
 
 	return nil
 }

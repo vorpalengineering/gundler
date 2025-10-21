@@ -16,7 +16,7 @@ import (
 type RPCServer struct {
 	server    *http.Server
 	ethClient *ethclient.Client
-	mempool   *mempool.Mempool
+	mempools  map[common.Address]*mempool.Mempool // entryPointAddress => Mempool
 	cache     *Cache
 }
 
@@ -66,8 +66,11 @@ func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
 		w.Write([]byte("OK"))
 	})
 
-	// Initialize mempool
-	mempool := mempool.NewMempool()
+	// Initialize mempools
+	mempools := make(map[common.Address]*mempool.Mempool, 3)
+	mempools[types.EntryPointV06Address] = mempool.NewMempool(types.EntryPointV06Address, chainID)
+	mempools[types.EntryPointV07Address] = mempool.NewMempool(types.EntryPointV07Address, chainID)
+	mempools[types.EntryPointV08Address] = mempool.NewMempool(types.EntryPointV08Address, chainID)
 
 	rpc := &RPCServer{
 		server: &http.Server{
@@ -75,7 +78,7 @@ func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
 			Handler: mux,
 		},
 		ethClient: ethClient,
-		mempool:   mempool,
+		mempools:  mempools,
 		cache:     cache,
 	}
 
@@ -228,10 +231,19 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	}
 	entryPoint := common.HexToAddress(entryPointStr)
 
+	// Validate EntryPoint address
+	err := types.ValidateEntryPointAddress(entryPoint)
+	if err != nil {
+		return "", &RPCError{
+			Code:    -32602,
+			Message: "Invalid EntryPoint Address",
+		}
+	}
+
 	// TODO: Validate UserOperation
 
 	// Add to mempool
-	if err := rpc.mempool.Add(&userOp); err != nil {
+	if err := rpc.mempools[entryPoint].Add(&userOp); err != nil {
 		return "", &RPCError{
 			Code:    -32602,
 			Message: fmt.Sprintf("Failed adding userOp to mempool: %v", err),
@@ -240,6 +252,8 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 
 	// Calculate userOp hash
 	userOpHash := userOp.Hash(entryPoint, rpc.cache.GetChainID())
+
+	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPoint].Size())
 
 	return userOpHash.Hex(), nil
 }

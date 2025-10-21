@@ -18,24 +18,15 @@ var (
 	EntryPointV08Address = common.HexToAddress("0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108")
 )
 
-func NewEntryPoint(version string) (*EntryPoint, error) {
-	var entryPointAddress common.Address
-
-	// Select address based on version
-	switch version {
-	case "V06":
-		entryPointAddress = EntryPointV06Address
-	case "V07":
-		entryPointAddress = EntryPointV07Address
-	case "V08":
-		entryPointAddress = EntryPointV08Address
+func ValidateEntryPointAddress(entryPointAddress common.Address) error {
+	switch entryPointAddress {
+	case EntryPointV06Address:
+		return nil
+	case EntryPointV07Address:
+		return nil
+	case EntryPointV08Address:
+		return nil
 	default:
-		return nil, fmt.Errorf("unsupported EntryPoint version: %s", version)
+		return fmt.Errorf("invalid entryPoint address: %s", entryPointAddress.Hex())
 	}
-
-	// Construct EntryPoint
-	return &EntryPoint{
-		Address: entryPointAddress,
-		Version: version,
-	}, nil
 }
