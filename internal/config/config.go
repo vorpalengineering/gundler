@@ -8,6 +8,7 @@ import (
 type Config struct {
 	EthereumRPC string `json:"ethereum_rpc"`
 	Port        uint   `json:"port"`
+	Beneficiary string `json:"beneficiary"`
 }
 
 func Load() (*Config, error) {
@@ -17,6 +18,7 @@ func Load() (*Config, error) {
 	// Define flags
 	rpc := flag.String("rpc", "", "Ethereum RPC URL")
 	port := flag.Uint("port", 3000, "Port")
+	beneficiary := flag.String("beneficiary", "", "Beneficiary Address")
 
 	// Parse all defined flags
 	flag.Parse()
@@ -24,6 +26,7 @@ func Load() (*Config, error) {
 	// Set flags into config
 	config.EthereumRPC = *rpc
 	config.Port = *port
+	config.Beneficiary = *beneficiary
 
 	// Validate config
 	err := config.Validate()
@@ -37,7 +40,10 @@ func Load() (*Config, error) {
 func (cfg *Config) Validate() error {
 	// Check required flags
 	if cfg.EthereumRPC == "" {
-		return fmt.Errorf("ethereum rpc is required")
+		return fmt.Errorf("ethereum rpc flag is required")
+	}
+	if cfg.Beneficiary == "" {
+		return fmt.Errorf("beneficiary flag is required")
 	}
 
 	return nil
@@ -48,5 +54,6 @@ func (cfg *Config) Print() {
 	fmt.Println("======= Gundler Config ========")
 	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
 	fmt.Printf("Port: %v\n", cfg.Port)
+	fmt.Printf("Beneficiary: %v\n", cfg.Beneficiary)
 	fmt.Println("===============================")
 }
