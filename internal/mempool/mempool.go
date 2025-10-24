@@ -13,8 +13,8 @@ type Mempool struct {
 	mutex         sync.RWMutex
 	userOps       []*types.UserOperation
 	userOpsByHash map[common.Hash]*types.UserOperation
-	entryPoint    common.Address
-	chainID       *big.Int
+	EntryPoint    common.Address
+	ChainID       *big.Int
 	// userOpsBySender map[common.Address]*types.UserOperation
 }
 
@@ -22,8 +22,8 @@ func NewMempool(entryPoint common.Address, chainID *big.Int) *Mempool {
 	return &Mempool{
 		userOps:       make([]*types.UserOperation, 0),
 		userOpsByHash: make(map[common.Hash]*types.UserOperation, 0),
-		entryPoint:    entryPoint,
-		chainID:       chainID,
+		EntryPoint:    entryPoint,
+		ChainID:       chainID,
 	}
 }
 
@@ -38,7 +38,7 @@ func (pool *Mempool) Add(userOp *types.UserOperation) error {
 	}
 
 	// Check for duplicates
-	userOpHash := userOp.Hash(pool.entryPoint, pool.chainID)
+	userOpHash := userOp.Hash(pool.EntryPoint, pool.ChainID)
 	_, exists := pool.userOpsByHash[userOpHash]
 	if exists {
 		return fmt.Errorf("duplicate userOp: %v", userOpHash)
@@ -53,14 +53,36 @@ func (pool *Mempool) Add(userOp *types.UserOperation) error {
 	return nil
 }
 
-func (pool *Mempool) RemoveByIndex(index int) {
+func (pool *Mempool) RemoveByIndex(index int) error {
 	// Acquire write lock
 	pool.mutex.Lock()
 	defer pool.mutex.Unlock()
 
-	if index >= 0 && index < len(pool.userOps) {
-		pool.userOps = append(pool.userOps[:index], pool.userOps[index+1:]...)
+	// Validate index
+	if index < 0 || index >= len(pool.userOps) {
+		return fmt.Errorf("invalid index: %s", index)
 	}
+
+	// Remove userOp at index
+	pool.userOps = append(pool.userOps[:index], pool.userOps[index+1:]...)
+
+	return nil
+}
+
+func (pool *Mempool) RemoveByIndexRange(begin int, end int) error {
+	// Acquire write lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	// Validate range bounds
+	if begin < 0 || end < 0 || begin > end || end >= len(pool.userOps) {
+		return fmt.Errorf("invalid range bounds: begin = %s, end = %s", begin, end)
+	}
+
+	// Remove userOps in range
+	pool.userOps = append(pool.userOps[:begin], pool.userOps[end:]...)
+
+	return nil
 }
 
 func (pool *Mempool) GetAll() []*types.UserOperation {
@@ -77,7 +99,7 @@ func (pool *Mempool) GetAll() []*types.UserOperation {
 }
 
 func (pool *Mempool) GetRange(begin int, end int) ([]*types.UserOperation, error) {
-	// Validate
+	// Validate range bounds
 	if begin > end || end > len(pool.userOps) {
 		return nil, fmt.Errorf("invalid range bounds")
 	}

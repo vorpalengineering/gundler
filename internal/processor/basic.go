@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 type BasicProcessor struct {
 	mempool     *mempool.Mempool
 	ethClient   *ethclient.Client
-	entryPoint  *types.EntryPoint
 	interval    time.Duration
 	stopChannel chan struct{}
 	doneChannel chan struct{}
@@ -22,13 +22,11 @@ type BasicProcessor struct {
 func NewBasicProcessor(
 	mempool *mempool.Mempool,
 	ethClient *ethclient.Client,
-	entryPoint *types.EntryPoint,
 	interval time.Duration,
 ) *BasicProcessor {
 	return &BasicProcessor{
 		mempool:     mempool,
 		ethClient:   ethClient,
-		entryPoint:  entryPoint,
 		interval:    interval,
 		stopChannel: make(chan struct{}),
 		doneChannel: make(chan struct{}),
@@ -72,13 +70,34 @@ func (processor *BasicProcessor) run(ctx context.Context) {
 }
 
 func (processor *BasicProcessor) processOnce(ctx context.Context) error {
+	// Check mempool size
+	mempoolSize := processor.mempool.Size()
+	if mempoolSize == 0 {
+		return nil
+	}
+
+	// Create Bundle
+	userOpRange, err := processor.mempool.GetRange(0, mempoolSize)
+	if err != nil {
+		return fmt.Errorf("error getting userOp range: %v", err)
+	}
+	bundle := processor.createBundle(userOpRange)
+
+	// TODO: simulate bundle
+
+	// Submit Bundle to Chain
+	err = processor.submitBundle(ctx, bundle)
+	if err != nil {
+		return fmt.Errorf("error submitting bundle: %v", err)
+	}
+
 	return nil
 }
 
 func (processor *BasicProcessor) createBundle(userOps []*types.UserOperation) *Bundle {
 	return &Bundle{
 		UserOps:    userOps,
-		EntryPoint: processor.entryPoint.Address,
+		EntryPoint: processor.mempool.EntryPoint,
 	}
 }
 
@@ -87,5 +106,9 @@ func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *Bun
 }
 
 func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle) error {
+	// TODO: submit to chain and get result
+
+	// Remove userOp range from mempool
+	// processor.mempool.RemoveByIndexRange()
 	return nil
 }
