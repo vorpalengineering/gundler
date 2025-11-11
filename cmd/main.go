@@ -9,7 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/config"
+	"github.com/vorpalengineering/gundler/internal/keypool"
 	"github.com/vorpalengineering/gundler/internal/rpc"
 )
 
@@ -25,6 +27,34 @@ func main() {
 	// Print config
 	cfg.Print()
 
+	// Load private keys from environment
+	privateKeys, err := config.LoadPrivateKeys()
+	if err != nil {
+		log.Fatalf("Failed to load private keys: %v", err)
+	}
+	log.Printf("Loaded %d private keys from environment", len(privateKeys))
+
+	// Connect to Ethereum client
+	ethClient, err := ethclient.Dial(cfg.EthereumRPC)
+	if err != nil {
+		log.Fatalf("Failed to connect to Ethereum client: %v", err)
+	}
+	log.Println("Connected to Ethereum client")
+
+	// Get chain ID
+	ctx := context.Background()
+	chainID, err := ethClient.ChainID(ctx)
+	if err != nil {
+		log.Fatalf("Failed to get chain ID: %v", err)
+	}
+	log.Printf("Connected to chain ID: %v", chainID)
+
+	// Create KeyPool
+	keyPool, err := keypool.NewKeyPool(privateKeys, ethClient, chainID)
+	if err != nil {
+		log.Fatalf("Failed to create KeyPool: %v", err)
+	}
+
 	// Start RPC Server
 	rpc, err := rpc.NewRPCServer(
 		cfg.Port,
@@ -32,6 +62,9 @@ func main() {
 		cfg.SupportedEntryPoints,
 		string(cfg.Mode),
 		cfg.MaxBundleSize,
+		ethClient,
+		chainID,
+		keyPool,
 	)
 	if err != nil {
 		log.Fatalf("Failed to create RPC Server: %v", err)

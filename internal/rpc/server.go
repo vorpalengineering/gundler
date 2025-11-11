@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/vorpalengineering/gundler/internal/keypool"
 	"github.com/vorpalengineering/gundler/internal/mempool"
 	"github.com/vorpalengineering/gundler/internal/processor"
 	"github.com/vorpalengineering/gundler/pkg/types"
@@ -26,20 +27,16 @@ type RPCServer struct {
 	mode                 string
 }
 
-func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode string, maxBundleSize uint) (*RPCServer, error) {
-	// Dial ethereum client
-	ethClient, err := ethclient.Dial(ethRPC)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to ethereum client: %w", err)
-	}
-
-	// Fetch chain id
-	ctx := context.Background()
-	chainID, err := ethClient.ChainID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get chain id from rpc: %v", err)
-	}
-	log.Printf("Connected to chain ID: %v", chainID)
+func NewRPCServer(
+	port uint,
+	ethRPC string,
+	supportedEntryPoints []string,
+	mode string,
+	maxBundleSize uint,
+	ethClient *ethclient.Client,
+	chainID *big.Int,
+	keyPool *keypool.KeyPool,
+) (*RPCServer, error) {
 
 	// Initialize mux handler
 	mux := http.NewServeMux()
@@ -65,6 +62,7 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode 
 			ethClient,
 			1*time.Second,
 			maxBundleSize,
+			keyPool,
 		)
 		if err := processors[normalizedAddress].Start(context.Background()); err != nil {
 			log.Fatalf("Failed to start processor: %v", err)

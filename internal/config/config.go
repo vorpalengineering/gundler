@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/vorpalengineering/gundler/pkg/types"
@@ -109,4 +110,28 @@ func (cfg *GundlerConfig) Print() {
 	fmt.Printf("Supported Entry Points: %v\n", cfg.SupportedEntryPoints)
 	fmt.Printf("Max Bundle Size: %v\n", cfg.MaxBundleSize)
 	fmt.Println("===============================")
+}
+
+func LoadPrivateKeys() ([]string, error) {
+	privKeysEnv := os.Getenv("GUNDLER_PRIV_KEYS")
+	if privKeysEnv == "" {
+		return nil, fmt.Errorf("GUNDLER_PRIV_KEYS environment variable is required")
+	}
+
+	// Split by comma and trim whitespace
+	privKeyStrings := strings.Split(privKeysEnv, ",")
+	result := make([]string, 0, len(privKeyStrings))
+
+	for _, pk := range privKeyStrings {
+		trimmed := strings.TrimSpace(pk)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("GUNDLER_PRIV_KEYS environment variable is empty")
+	}
+
+	return result, nil
 }

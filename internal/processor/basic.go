@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/vorpalengineering/gundler/internal/keypool"
 	"github.com/vorpalengineering/gundler/internal/mempool"
 	"github.com/vorpalengineering/gundler/pkg/types"
 )
@@ -21,6 +22,7 @@ type BasicProcessor struct {
 	paused        bool
 	pauseMutex    sync.RWMutex
 	maxBundleSize uint
+	keyPool       *keypool.KeyPool
 }
 
 func NewBasicProcessor(
@@ -28,6 +30,7 @@ func NewBasicProcessor(
 	ethClient *ethclient.Client,
 	interval time.Duration,
 	maxBundleSize uint,
+	keyPool *keypool.KeyPool,
 ) *BasicProcessor {
 	return &BasicProcessor{
 		mempool:       mempool,
@@ -36,6 +39,7 @@ func NewBasicProcessor(
 		stopChannel:   make(chan struct{}),
 		doneChannel:   make(chan struct{}),
 		maxBundleSize: maxBundleSize,
+		keyPool:       keyPool,
 	}
 }
 
@@ -127,7 +131,25 @@ func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *Bun
 func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle, bundleSize int) error {
 	log.Printf("Submitting bundle to chain... size: %v", len(bundle.UserOps))
 
-	// TODO: submit to chain and get result
+	// TODO: Build actual transaction for EntryPoint.handleOps() call
+	// For now, this is a placeholder that demonstrates keypool usage
+	// In a real implementation, you would:
+	// 1. Pack the userOps into the EntryPoint.handleOps() call data
+	// 2. Create a transaction with proper gas limits and values
+	// 3. Submit via keypool
+
+	// Placeholder: We'll add actual transaction building in a future update
+	log.Printf("TODO: Build and submit transaction for %d userOps to EntryPoint %s",
+		len(bundle.UserOps), bundle.EntryPoint.Hex())
+
+	// Example of how keypool will be used:
+	// tx := ethtypes.NewTransaction(...)
+	// txHash, keyAddress, err := processor.keyPool.SubmitTransaction(ctx, tx)
+	// if err != nil {
+	//     return fmt.Errorf("failed to submit bundle transaction: %w", err)
+	// }
+	// defer processor.keyPool.ReleaseKey(keyAddress)
+	// log.Printf("Bundle submitted: tx=%s, key=%s", txHash.Hex(), keyAddress.Hex())
 
 	// Remove bundled userOps from mempool
 	err := processor.mempool.RemoveByIndexRange(0, bundleSize)
