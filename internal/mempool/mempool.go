@@ -76,23 +76,6 @@ func (pool *Mempool) RemoveByIndex(index int) error {
 	return nil
 }
 
-func (pool *Mempool) RemoveByIndexRange(begin int, end int) error {
-	// Acquire write lock
-	pool.mutex.Lock()
-	defer pool.mutex.Unlock()
-
-	// Validate range bounds
-	if begin < 0 || end < 0 || begin > end || end >= len(pool.userOps) {
-		return fmt.Errorf("invalid range bounds: begin = %s, end = %s", begin, end)
-	}
-
-	// Remove userOps in range
-	// TODO: fix this
-	pool.userOps = append(pool.userOps[:begin], pool.userOps[end:]...)
-
-	return nil
-}
-
 func (pool *Mempool) GetByIndex(index int) (*types.UserOperation, error) {
 	// Acquire read lock
 	pool.mutex.Lock()
