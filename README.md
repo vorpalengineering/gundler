@@ -40,7 +40,12 @@ cp example.config.json config.json
 }
 ```
 
-3. Run gundler:
+3. Set Private Keys
+```bash
+export GUNDLER_PRIV_KEYS="0xprivkey1,0xprivkey2,0xprivkey3"
+```
+
+4. Run gundler:
 ```bash
 go run cmd/main.go
 ```
