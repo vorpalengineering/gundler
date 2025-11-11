@@ -75,6 +75,12 @@ The config file must be a JSON file with the following fields:
   - `size`: Current number of user operations in the mempool
   - `userops`: Array of all user operations in the mempool
 
+**POST /debug_pause**
+- Toggles pause state of all processors
+- When paused, processors stop processing user operations (bundling and submitting)
+- User operations can still be added to mempools while paused
+- Response: JSON object with `paused` field (boolean) indicating new state
+
 ### Curl Commands
 
 ```bash
@@ -83,6 +89,9 @@ curl http://localhost:3000/health
 
 # Debug: Get All Mempool Sizes
 curl http://localhost:3000/debug_mempools
+
+# Debug: Toggle Processor Pause
+curl -X POST http://localhost:3000/debug_pause
 
 # eth_chainId Method
 curl -X POST http://localhost:3000 \

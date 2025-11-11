@@ -10,6 +10,9 @@ import (
 type Processor interface {
 	Start(ctx context.Context) error
 	Stop() error
+	Pause()
+	Unpause()
+	IsPaused() bool
 }
 
 type Bundle struct {

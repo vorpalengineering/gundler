@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,6 +18,8 @@ type BasicProcessor struct {
 	interval    time.Duration
 	stopChannel chan struct{}
 	doneChannel chan struct{}
+	paused      bool
+	pauseMutex  sync.RWMutex
 }
 
 func NewBasicProcessor(
@@ -70,6 +73,11 @@ func (processor *BasicProcessor) run(ctx context.Context) {
 }
 
 func (processor *BasicProcessor) processOnce(ctx context.Context) error {
+	// Check if paused
+	if processor.IsPaused() {
+		return nil
+	}
+
 	// Check mempool size
 	mempoolSize := processor.mempool.Size()
 	if mempoolSize == 0 {
@@ -120,4 +128,31 @@ func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundl
 	}
 
 	return nil
+}
+
+func (processor *BasicProcessor) Pause() {
+	processor.pauseMutex.Lock()
+	defer processor.pauseMutex.Unlock()
+
+	if !processor.paused {
+		processor.paused = true
+		log.Println("Basic Processor Paused")
+	}
+}
+
+func (processor *BasicProcessor) Unpause() {
+	processor.pauseMutex.Lock()
+	defer processor.pauseMutex.Unlock()
+
+	if processor.paused {
+		processor.paused = false
+		log.Println("Basic Processor Unpaused")
+	}
+}
+
+func (processor *BasicProcessor) IsPaused() bool {
+	processor.pauseMutex.RLock()
+	defer processor.pauseMutex.RUnlock()
+
+	return processor.paused
 }

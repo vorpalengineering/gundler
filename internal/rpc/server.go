@@ -100,8 +100,9 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 	// Register base route
 	mux.HandleFunc("/", rpc.handleRPCRequest)
 
-	// Register debug endpoint
+	// Register debug endpoints
 	mux.HandleFunc("/debug_mempools", rpc.handleDebugMempools)
+	mux.HandleFunc("/debug_pause", rpc.handleDebugPause)
 
 	return rpc, nil
 }
@@ -313,6 +314,44 @@ func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request
 	// Return JSON response
 	response := map[string]interface{}{
 		"mempools": mempools,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (rpc *RPCServer) handleDebugPause(w http.ResponseWriter, r *http.Request) {
+	// Restrict to POST requests
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check current pause state (check first processor)
+	var isPaused bool
+	for _, proc := range rpc.processors {
+		isPaused = proc.IsPaused()
+		break
+	}
+
+	// Toggle pause state for all processors
+	if isPaused {
+		// Unpause all processors
+		for _, proc := range rpc.processors {
+			proc.Unpause()
+		}
+		log.Println("All processors unpaused")
+	} else {
+		// Pause all processors
+		for _, proc := range rpc.processors {
+			proc.Pause()
+		}
+		log.Println("All processors paused")
+	}
+
+	// Return JSON response with new state
+	response := map[string]interface{}{
+		"paused": !isPaused,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
