@@ -201,16 +201,7 @@ func (rpc *RPCServer) sendError(w http.ResponseWriter, id any, code int, message
 }
 
 func (rpc *RPCServer) handleChainId() (string, *RPCError) {
-	ctx := context.Background()
-	chainID, err := rpc.ethClient.ChainID(ctx)
-	if err != nil {
-		return "", &RPCError{
-			Code:    -32000,
-			Message: fmt.Sprintf("failed to get chain id: %v", err),
-		}
-	}
-
-	return fmt.Sprintf("0x%x", chainID), nil
+	return fmt.Sprintf("0x%x", rpc.chainID), nil
 }
 
 func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *RPCError) {
