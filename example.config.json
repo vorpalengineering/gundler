@@ -1,4 +1,5 @@
 {
+  "mode": "DEBUG",
   "ethereum_rpc": "https://rpc.testnet.telos.net",
   "port": 3000,
   "beneficiary": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
