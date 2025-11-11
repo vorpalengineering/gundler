@@ -81,6 +81,10 @@ The config file must be a JSON file with the following fields:
 - User operations can still be added to mempools while paused
 - Response: JSON object with `paused` field (boolean) indicating new state
 
+**POST /debug_clear**
+- Clears all user operations from all mempools
+- Response: JSON object with `cleared` count and `message` fields
+
 ### Curl Commands
 
 ```bash
@@ -92,6 +96,9 @@ curl http://localhost:3000/debug_mempools
 
 # Debug: Toggle Processor Pause
 curl -X POST http://localhost:3000/debug_pause
+
+# Debug: Clear All Mempools
+curl -X POST http://localhost:3000/debug_clear
 
 # eth_chainId Method
 curl -X POST http://localhost:3000 \

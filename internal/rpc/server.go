@@ -103,6 +103,7 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 	// Register debug endpoints
 	mux.HandleFunc("/debug_mempools", rpc.handleDebugMempools)
 	mux.HandleFunc("/debug_pause", rpc.handleDebugPause)
+	mux.HandleFunc("/debug_clear", rpc.handleDebugClear)
 
 	return rpc, nil
 }
@@ -352,6 +353,33 @@ func (rpc *RPCServer) handleDebugPause(w http.ResponseWriter, r *http.Request) {
 	// Return JSON response with new state
 	response := map[string]interface{}{
 		"paused": !isPaused,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (rpc *RPCServer) handleDebugClear(w http.ResponseWriter, r *http.Request) {
+	// Restrict to POST requests
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Clear all mempools
+	clearedCount := 0
+	for _, mempool := range rpc.mempools {
+		mempool.Clear()
+		log.Printf("Mempool %s cleared", mempool.EntryPoint.Hex())
+		clearedCount++
+	}
+
+	log.Printf("Cleared %d mempools", clearedCount)
+
+	// Return JSON response
+	response := map[string]interface{}{
+		"cleared": clearedCount,
+		"message": fmt.Sprintf("%d mempools cleared", clearedCount),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
