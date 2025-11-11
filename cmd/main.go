@@ -31,6 +31,7 @@ func main() {
 		cfg.EthereumRPC,
 		cfg.SupportedEntryPoints,
 		string(cfg.Mode),
+		cfg.MaxBundleSize,
 	)
 	if err != nil {
 		log.Fatalf("Failed to create RPC Server: %v", err)

@@ -31,6 +31,7 @@ cp example.config.json config.json
   "ethereum_rpc": "https://rpc.testnet.telos.net",
   "port": 3000,
   "beneficiary": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "max_bundle_size": 5,
   "supported_entry_points": [
     "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
     "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
@@ -65,6 +66,7 @@ The config file must be a JSON file with the following fields:
 | ethereum_rpc | string | Yes | Ethereum RPC URL |
 | port | number | No | Port to run the server on (default: 3000) |
 | beneficiary | string | Yes | Beneficiary address |
+| max_bundle_size | number | No | Maximum number of user operations per bundle (default: 5) |
 | supported_entry_points | array[string] | Yes | Array of supported ERC-4337 entry point contract addresses |
 
 ### Runtime Modes

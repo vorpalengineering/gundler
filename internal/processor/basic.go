@@ -13,26 +13,29 @@ import (
 )
 
 type BasicProcessor struct {
-	mempool     *mempool.Mempool
-	ethClient   *ethclient.Client
-	interval    time.Duration
-	stopChannel chan struct{}
-	doneChannel chan struct{}
-	paused      bool
-	pauseMutex  sync.RWMutex
+	mempool       *mempool.Mempool
+	ethClient     *ethclient.Client
+	interval      time.Duration
+	stopChannel   chan struct{}
+	doneChannel   chan struct{}
+	paused        bool
+	pauseMutex    sync.RWMutex
+	maxBundleSize uint
 }
 
 func NewBasicProcessor(
 	mempool *mempool.Mempool,
 	ethClient *ethclient.Client,
 	interval time.Duration,
+	maxBundleSize uint,
 ) *BasicProcessor {
 	return &BasicProcessor{
-		mempool:     mempool,
-		ethClient:   ethClient,
-		interval:    interval,
-		stopChannel: make(chan struct{}),
-		doneChannel: make(chan struct{}),
+		mempool:       mempool,
+		ethClient:     ethClient,
+		interval:      interval,
+		stopChannel:   make(chan struct{}),
+		doneChannel:   make(chan struct{}),
+		maxBundleSize: maxBundleSize,
 	}
 }
 
@@ -84,20 +87,25 @@ func (processor *BasicProcessor) processOnce(ctx context.Context) error {
 		return nil
 	}
 
-	// Create Bundle from mempool userops
-	// TODO: get multiple userops by range
-	userOp, err := processor.mempool.GetByIndex(0)
-	if err != nil {
-		return fmt.Errorf("error getting userOp by index: %v", err)
+	// Calculate bundle size (min of mempool size and max bundle size)
+	bundleSize := int(processor.maxBundleSize)
+	if mempoolSize < bundleSize {
+		bundleSize = mempoolSize
 	}
-	userOps := make([]*types.UserOperation, 1)
-	userOps[0] = userOp
+
+	// Get userops from mempool by range
+	userOps, err := processor.mempool.GetRange(0, bundleSize)
+	if err != nil {
+		return fmt.Errorf("error getting userOps by range: %v", err)
+	}
+
+	// Create Bundle from mempool userops
 	bundle := processor.createBundle(userOps)
 
 	// TODO: simulate bundle
 
 	// Submit Bundle to Chain
-	err = processor.submitBundle(ctx, bundle)
+	err = processor.submitBundle(ctx, bundle, bundleSize)
 	if err != nil {
 		return fmt.Errorf("error submitting bundle: %v", err)
 	}
@@ -116,15 +124,15 @@ func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *Bun
 	return nil
 }
 
-func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle) error {
+func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle, bundleSize int) error {
 	log.Printf("Submitting bundle to chain... size: %v", len(bundle.UserOps))
 
 	// TODO: submit to chain and get result
 
 	// Remove bundled userOps from mempool
-	err := processor.mempool.RemoveByIndex(0)
+	err := processor.mempool.RemoveByIndexRange(0, bundleSize)
 	if err != nil {
-		return fmt.Errorf("error removing bundled userops")
+		return fmt.Errorf("error removing bundled userops: %v", err)
 	}
 
 	return nil

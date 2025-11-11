@@ -45,7 +45,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode string) (*RPCServer, error) {
+func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode string, maxBundleSize uint) (*RPCServer, error) {
 	// Dial ethereum client
 	ethClient, err := ethclient.Dial(ethRPC)
 	if err != nil {
@@ -79,7 +79,12 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode 
 		mempools[normalizedAddress] = mempool.NewMempool(entryPoint, chainID)
 
 		// Create processor
-		processors[normalizedAddress] = processor.NewBasicProcessor(mempools[normalizedAddress], ethClient, 1*time.Second)
+		processors[normalizedAddress] = processor.NewBasicProcessor(
+			mempools[normalizedAddress],
+			ethClient,
+			1*time.Second,
+			maxBundleSize,
+		)
 		if err := processors[normalizedAddress].Start(context.Background()); err != nil {
 			log.Fatalf("Failed to start processor: %v", err)
 		}

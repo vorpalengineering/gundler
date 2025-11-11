@@ -76,6 +76,28 @@ func (pool *Mempool) RemoveByIndex(index int) error {
 	return nil
 }
 
+func (pool *Mempool) RemoveByIndexRange(begin int, end int) error {
+	// Acquire write lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	// Validate range bounds
+	if begin < 0 || end > len(pool.userOps) || begin > end {
+		return fmt.Errorf("invalid range bounds: begin=%d, end=%d, length=%d", begin, end, len(pool.userOps))
+	}
+
+	// Remove userOps from hash map
+	for i := begin; i < end; i++ {
+		userOpHash := pool.userOps[i].Hash(pool.EntryPoint, pool.ChainID)
+		delete(pool.userOpsByHash, userOpHash)
+	}
+
+	// Remove userOps from slice
+	pool.userOps = append(pool.userOps[:begin], pool.userOps[end:]...)
+
+	return nil
+}
+
 func (pool *Mempool) GetByIndex(index int) (*types.UserOperation, error) {
 	// Acquire read lock
 	pool.mutex.Lock()

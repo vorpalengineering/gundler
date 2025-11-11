@@ -35,6 +35,7 @@ type GundlerConfig struct {
 	Beneficiary          string   `json:"beneficiary"`
 	SupportedEntryPoints []string `json:"supported_entry_points"`
 	Mode                 Mode     `json:"mode"`
+	MaxBundleSize        uint     `json:"max_bundle_size"`
 }
 
 func Load() (*GundlerConfig, error) {
@@ -90,6 +91,11 @@ func (cfg *GundlerConfig) Validate() error {
 		return fmt.Errorf("mode must be one of: DEBUG, DEV, PROD (got: %s)", cfg.Mode)
 	}
 
+	// Set default MaxBundleSize if not provided
+	if cfg.MaxBundleSize == 0 {
+		cfg.MaxBundleSize = 5
+	}
+
 	return nil
 }
 
@@ -101,5 +107,6 @@ func (cfg *GundlerConfig) Print() {
 	fmt.Printf("Port: %v\n", cfg.Port)
 	fmt.Printf("Beneficiary: %v\n", cfg.Beneficiary)
 	fmt.Printf("Supported Entry Points: %v\n", cfg.SupportedEntryPoints)
+	fmt.Printf("Max Bundle Size: %v\n", cfg.MaxBundleSize)
 	fmt.Println("===============================")
 }
