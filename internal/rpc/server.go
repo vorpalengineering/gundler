@@ -14,10 +14,11 @@ import (
 )
 
 type RPCServer struct {
-	server    *http.Server
-	ethClient *ethclient.Client
-	mempools  map[common.Address]*mempool.Mempool // entryPointAddress => Mempool
-	cache     *Cache
+	server               *http.Server
+	ethClient            *ethclient.Client
+	mempools             map[common.Address]*mempool.Mempool // entryPointAddress => Mempool
+	cache                *Cache
+	supportedEntryPoints []string
 }
 
 type RPCRequest struct {
@@ -39,7 +40,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
+func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPCServer, error) {
 	// Dial ethereum client
 	ethClient, err := ethclient.Dial(ethRPC)
 	if err != nil {
@@ -66,20 +67,23 @@ func NewRPCServer(port uint, ethRPC string) (*RPCServer, error) {
 		w.Write([]byte("OK"))
 	})
 
-	// Initialize mempools
-	mempools := make(map[common.Address]*mempool.Mempool, 3)
-	mempools[types.EntryPointV06Address] = mempool.NewMempool(types.EntryPointV06Address, chainID)
-	mempools[types.EntryPointV07Address] = mempool.NewMempool(types.EntryPointV07Address, chainID)
-	mempools[types.EntryPointV08Address] = mempool.NewMempool(types.EntryPointV08Address, chainID)
+	// Initialize mempools for configured entry points
+	mempools := make(map[common.Address]*mempool.Mempool, len(supportedEntryPoints))
+	for _, epStr := range supportedEntryPoints {
+		entryPoint := common.HexToAddress(epStr)
+		mempools[entryPoint] = mempool.NewMempool(entryPoint, chainID)
+		log.Printf("Initialized mempool for entry point: %s", epStr)
+	}
 
 	rpc := &RPCServer{
 		server: &http.Server{
 			Addr:    fmt.Sprintf("localhost:%v", port),
 			Handler: mux,
 		},
-		ethClient: ethClient,
-		mempools:  mempools,
-		cache:     cache,
+		ethClient:            ethClient,
+		mempools:             mempools,
+		cache:                cache,
+		supportedEntryPoints: supportedEntryPoints,
 	}
 
 	// Register base route
@@ -189,10 +193,7 @@ func (rpc *RPCServer) handleChainId() (string, *RPCError) {
 }
 
 func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *RPCError) {
-	return []string{
-		"0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // v0.6
-		"0x0000000071727De22E5E9d8BAf0edAc6f37da032", // v0.7
-	}, nil
+	return rpc.supportedEntryPoints, nil
 }
 
 func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *RPCError) {

@@ -7,13 +7,14 @@ import (
 	"os"
 )
 
-type Config struct {
-	EthereumRPC string `json:"ethereum_rpc"`
-	Port        uint   `json:"port"`
-	Beneficiary string `json:"beneficiary"`
+type GundlerConfig struct {
+	EthereumRPC          string   `json:"ethereum_rpc"`
+	Port                 uint     `json:"port"`
+	Beneficiary          string   `json:"beneficiary"`
+	SupportedEntryPoints []string `json:"supported_entry_points"`
 }
 
-func Load() (*Config, error) {
+func Load() (*GundlerConfig, error) {
 	// Define config file flag
 	configPath := flag.String("config", "./config.json", "Path to config file")
 
@@ -27,7 +28,7 @@ func Load() (*Config, error) {
 	}
 
 	// Parse JSON
-	config := &Config{}
+	config := &GundlerConfig{}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("error parsing config file: %w", err)
 	}
@@ -41,23 +42,27 @@ func Load() (*Config, error) {
 	return config, nil
 }
 
-func (cfg *Config) Validate() error {
-	// Check required flags
+func (cfg *GundlerConfig) Validate() error {
+	// Check required fields
 	if cfg.EthereumRPC == "" {
-		return fmt.Errorf("ethereum rpc flag is required")
+		return fmt.Errorf("ethereum_rpc is required")
 	}
 	if cfg.Beneficiary == "" {
-		return fmt.Errorf("beneficiary flag is required")
+		return fmt.Errorf("beneficiary is required")
+	}
+	if len(cfg.SupportedEntryPoints) == 0 {
+		return fmt.Errorf("supported_entry_points must contain at least one entry point address")
 	}
 
 	return nil
 }
 
-func (cfg *Config) Print() {
+func (cfg *GundlerConfig) Print() {
 	// Print config summary
 	fmt.Println("======= Gundler Config ========")
 	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
 	fmt.Printf("Port: %v\n", cfg.Port)
 	fmt.Printf("Beneficiary: %v\n", cfg.Beneficiary)
+	fmt.Printf("Supported Entry Points: %v\n", cfg.SupportedEntryPoints)
 	fmt.Println("===============================")
 }
