@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,7 +18,7 @@ type RPCServer struct {
 	server               *http.Server
 	ethClient            *ethclient.Client
 	mempools             map[common.Address]*mempool.Mempool // entryPointAddress => Mempool
-	cache                *Cache
+	chainID              *big.Int
 	supportedEntryPoints []string
 }
 
@@ -53,10 +54,7 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chain id from rpc: %v", err)
 	}
-
-	// Initialize cache and set chain id
-	cache := NewCache()
-	cache.SetChainID(chainID)
+	log.Printf("Connected to chain ID: %v", chainID)
 
 	// Initialize mux handler
 	mux := http.NewServeMux()
@@ -82,7 +80,7 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 		},
 		ethClient:            ethClient,
 		mempools:             mempools,
-		cache:                cache,
+		chainID:              chainID,
 		supportedEntryPoints: supportedEntryPoints,
 	}
 
@@ -252,7 +250,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	}
 
 	// Calculate userOp hash
-	userOpHash := userOp.Hash(entryPoint, rpc.cache.GetChainID())
+	userOpHash := userOp.Hash(entryPoint, rpc.chainID)
 
 	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPoint].Size())
 
