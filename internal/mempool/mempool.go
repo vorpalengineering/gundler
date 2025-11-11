@@ -63,6 +63,13 @@ func (pool *Mempool) RemoveByIndex(index int) error {
 		return fmt.Errorf("invalid index: %s", index)
 	}
 
+	// Remove userOp by hash
+	userOpHash := pool.userOps[index].Hash(pool.EntryPoint, pool.ChainID)
+	_, exists := pool.userOpsByHash[userOpHash]
+	if exists {
+		delete(pool.userOpsByHash, userOpHash)
+	}
+
 	// Remove userOp at index
 	pool.userOps = append(pool.userOps[:index], pool.userOps[index+1:]...)
 
