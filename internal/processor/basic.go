@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/mempool"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 type BasicProcessor struct {

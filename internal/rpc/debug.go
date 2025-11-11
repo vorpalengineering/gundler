@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
-func (rpc *RPCServer) handleDebugMempools() (any, *RPCError) {
+func (rpc *RPCServer) handleDebugMempools() (any, *types.RPCError) {
 	// Helper function to get version label from address
 	getVersionLabel := func(address string) string {
 		switch address {
@@ -43,7 +43,7 @@ func (rpc *RPCServer) handleDebugMempools() (any, *RPCError) {
 	return mempools, nil
 }
 
-func (rpc *RPCServer) handleDebugPause() (any, *RPCError) {
+func (rpc *RPCServer) handleDebugPause() (any, *types.RPCError) {
 	// Check current pause state (check first processor)
 	var isPaused bool
 	for _, proc := range rpc.processors {
@@ -74,7 +74,7 @@ func (rpc *RPCServer) handleDebugPause() (any, *RPCError) {
 	return response, nil
 }
 
-func (rpc *RPCServer) handleDebugClear() (any, *RPCError) {
+func (rpc *RPCServer) handleDebugClear() (any, *types.RPCError) {
 	// Clear all mempools
 	clearedCount := 0
 	for _, mempool := range rpc.mempools {

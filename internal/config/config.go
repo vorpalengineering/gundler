@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 // Mode represents the runtime mode

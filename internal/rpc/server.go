@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/mempool"
 	"github.com/vorpalengineering/gundler/internal/processor"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 type RPCServer struct {
@@ -24,25 +24,6 @@ type RPCServer struct {
 	chainID              *big.Int
 	supportedEntryPoints []string
 	mode                 string
-}
-
-type RPCRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params"`
-	ID      any             `json:"id"`
-}
-
-type RPCResponse struct {
-	JSONRPC string    `json:"jsonrpc"`
-	Result  any       `json:"result,omitempty"`
-	Error   *RPCError `json:"error,omitempty"`
-	ID      any       `json:"id"`
-}
-
-type RPCError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }
 
 func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode string, maxBundleSize uint) (*RPCServer, error) {
@@ -154,7 +135,7 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Decode request as JSON
-	var req RPCRequest
+	var req types.RPCRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		rpc.sendError(w, nil, -32700, "Parse error")
 		return
@@ -162,7 +143,7 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Route to appropriate handler
 	var result any
-	var err *RPCError
+	var err *types.RPCError
 
 	// Handle standard RPC methods
 	switch req.Method {
@@ -183,13 +164,13 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 			case "debug_clear":
 				result, err = rpc.handleDebugClear()
 			default:
-				err = &RPCError{
+				err = &types.RPCError{
 					Code:    -32601,
 					Message: "Method not found",
 				}
 			}
 		} else {
-			err = &RPCError{
+			err = &types.RPCError{
 				Code:    -32601,
 				Message: "Method not found",
 			}
@@ -206,7 +187,7 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rpc *RPCServer) sendResult(w http.ResponseWriter, id any, result any) {
-	resp := &RPCResponse{
+	resp := &types.RPCResponse{
 		JSONRPC: "2.0",
 		Result:  result,
 		ID:      id,
@@ -216,9 +197,9 @@ func (rpc *RPCServer) sendResult(w http.ResponseWriter, id any, result any) {
 }
 
 func (rpc *RPCServer) sendError(w http.ResponseWriter, id any, code int, message string) {
-	resp := &RPCResponse{
+	resp := &types.RPCResponse{
 		JSONRPC: "2.0",
-		Error: &RPCError{
+		Error: &types.RPCError{
 			Code:    code,
 			Message: message,
 		},
@@ -228,26 +209,26 @@ func (rpc *RPCServer) sendError(w http.ResponseWriter, id any, code int, message
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (rpc *RPCServer) handleChainId() (string, *RPCError) {
+func (rpc *RPCServer) handleChainId() (string, *types.RPCError) {
 	return fmt.Sprintf("0x%x", rpc.chainID), nil
 }
 
-func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *RPCError) {
+func (rpc *RPCServer) handleSupportedEntryPoints() ([]string, *types.RPCError) {
 	return rpc.supportedEntryPoints, nil
 }
 
-func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *RPCError) {
+func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *types.RPCError) {
 	// Parse json params
 	var rawParams []json.RawMessage
 	if err := json.Unmarshal(params, &rawParams); err != nil {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: "Invalid parameters",
 		}
 	}
 
 	if len(rawParams) != 2 {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: "Expected 2 parameters: [userOp, entryPoint]",
 		}
@@ -256,7 +237,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// Parse UserOperation from rawParams[0]
 	var userOp types.UserOperation
 	if err := json.Unmarshal(rawParams[0], &userOp); err != nil {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: "Error unmarshalling userOp",
 		}
@@ -265,7 +246,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// Parse EntryPoint address from rawParams[1]
 	var entryPointStr string
 	if err := json.Unmarshal(rawParams[1], &entryPointStr); err != nil {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: "Error unmarshalling entryPoint",
 		}
@@ -275,7 +256,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// Validate EntryPoint address
 	err := types.ValidateEntryPointAddress(entryPoint)
 	if err != nil {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: "Invalid EntryPoint Address",
 		}
@@ -294,14 +275,14 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 		for key := range rpc.mempools {
 			log.Printf("  - %s", key)
 		}
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: fmt.Sprintf("No mempool found for entry point: %s", normalizedAddress),
 		}
 	}
 
 	if err := mempool.Add(&userOp); err != nil {
-		return "", &RPCError{
+		return "", &types.RPCError{
 			Code:    -32602,
 			Message: fmt.Sprintf("Failed adding userOp to mempool: %v", err),
 		}
