@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 )
 
 type Config struct {
@@ -12,26 +14,28 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	// Initialize empty config
-	config := &Config{}
+	// Define config file flag
+	configPath := flag.String("config", "./config.json", "Path to config file")
 
-	// Define flags
-	rpc := flag.String("rpc", "", "Ethereum RPC URL")
-	port := flag.Uint("port", 3000, "Port")
-	beneficiary := flag.String("beneficiary", "", "Beneficiary Address")
-
-	// Parse all defined flags
+	// Parse flags
 	flag.Parse()
 
-	// Set flags into config
-	config.EthereumRPC = *rpc
-	config.Port = *port
-	config.Beneficiary = *beneficiary
+	// Read config file
+	data, err := os.ReadFile(*configPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading config file: %w", err)
+	}
+
+	// Parse JSON
+	config := &Config{}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("error parsing config file: %w", err)
+	}
 
 	// Validate config
-	err := config.Validate()
+	err = config.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("error validating config")
+		return nil, fmt.Errorf("error validating config: %w", err)
 	}
 
 	return config, nil
