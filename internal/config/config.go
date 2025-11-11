@@ -7,14 +7,35 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
+
+// Mode represents the runtime mode
+type Mode string
+
+const (
+	ModeDebug Mode = "DEBUG"
+	ModeDev   Mode = "DEV"
+	ModeProd  Mode = "PROD"
+)
+
+// IsValid checks if the mode is valid
+func (m Mode) IsValid() bool {
+	switch m {
+	case ModeDebug, ModeDev, ModeProd:
+		return true
+	default:
+		return false
+	}
+}
 
 type GundlerConfig struct {
 	EthereumRPC          string   `json:"ethereum_rpc"`
 	Port                 uint     `json:"port"`
 	Beneficiary          string   `json:"beneficiary"`
 	SupportedEntryPoints []string `json:"supported_entry_points"`
+	Mode                 Mode     `json:"mode"`
+	MaxBundleSize        uint     `json:"max_bundle_size"`
 }
 
 func Load() (*GundlerConfig, error) {
@@ -63,6 +84,17 @@ func (cfg *GundlerConfig) Validate() error {
 			return fmt.Errorf("entrypoint address %s is invalid", epStr)
 		}
 	}
+	if cfg.Mode == "" {
+		return fmt.Errorf("mode is required")
+	}
+	if !cfg.Mode.IsValid() {
+		return fmt.Errorf("mode must be one of: DEBUG, DEV, PROD (got: %s)", cfg.Mode)
+	}
+
+	// Set default MaxBundleSize if not provided
+	if cfg.MaxBundleSize == 0 {
+		cfg.MaxBundleSize = 5
+	}
 
 	return nil
 }
@@ -70,9 +102,11 @@ func (cfg *GundlerConfig) Validate() error {
 func (cfg *GundlerConfig) Print() {
 	// Print config summary
 	fmt.Println("======= Gundler Config ========")
+	fmt.Printf("Mode: %s\n", cfg.Mode)
 	fmt.Printf("Ethereum RPC: %s\n", cfg.EthereumRPC)
 	fmt.Printf("Port: %v\n", cfg.Port)
 	fmt.Printf("Beneficiary: %v\n", cfg.Beneficiary)
 	fmt.Printf("Supported Entry Points: %v\n", cfg.SupportedEntryPoints)
+	fmt.Printf("Max Bundle Size: %v\n", cfg.MaxBundleSize)
 	fmt.Println("===============================")
 }

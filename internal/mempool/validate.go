@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 func (pool *Mempool) validateUserOp(userOp *types.UserOperation) error {

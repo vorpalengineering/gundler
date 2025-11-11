@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 type Mempool struct {
@@ -63,6 +63,13 @@ func (pool *Mempool) RemoveByIndex(index int) error {
 		return fmt.Errorf("invalid index: %s", index)
 	}
 
+	// Remove userOp by hash
+	userOpHash := pool.userOps[index].Hash(pool.EntryPoint, pool.ChainID)
+	_, exists := pool.userOpsByHash[userOpHash]
+	if exists {
+		delete(pool.userOpsByHash, userOpHash)
+	}
+
 	// Remove userOp at index
 	pool.userOps = append(pool.userOps[:index], pool.userOps[index+1:]...)
 
@@ -75,12 +82,17 @@ func (pool *Mempool) RemoveByIndexRange(begin int, end int) error {
 	defer pool.mutex.Unlock()
 
 	// Validate range bounds
-	if begin < 0 || end < 0 || begin > end || end >= len(pool.userOps) {
-		return fmt.Errorf("invalid range bounds: begin = %s, end = %s", begin, end)
+	if begin < 0 || end > len(pool.userOps) || begin > end {
+		return fmt.Errorf("invalid range bounds: begin=%d, end=%d, length=%d", begin, end, len(pool.userOps))
 	}
 
-	// Remove userOps in range
-	// TODO: fix this
+	// Remove userOps from hash map
+	for i := begin; i < end; i++ {
+		userOpHash := pool.userOps[i].Hash(pool.EntryPoint, pool.ChainID)
+		delete(pool.userOpsByHash, userOpHash)
+	}
+
+	// Remove userOps from slice
 	pool.userOps = append(pool.userOps[:begin], pool.userOps[end:]...)
 
 	return nil

@@ -27,9 +27,11 @@ cp example.config.json config.json
 2. Edit the config file with your settings:
 ```json
 {
+  "mode": "DEBUG",
   "ethereum_rpc": "https://rpc.testnet.telos.net",
   "port": 3000,
   "beneficiary": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "max_bundle_size": 5,
   "supported_entry_points": [
     "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
     "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
@@ -60,28 +62,49 @@ The config file must be a JSON file with the following fields:
 
 | Field | Type | Required | Description |
 | :------- | :------: | :-------: | :------- |
+| mode | string | Yes | Runtime mode: DEBUG, DEV, or PROD (case-insensitive) |
 | ethereum_rpc | string | Yes | Ethereum RPC URL |
 | port | number | No | Port to run the server on (default: 3000) |
 | beneficiary | string | Yes | Beneficiary address |
+| max_bundle_size | number | No | Maximum number of user operations per bundle (default: 5) |
 | supported_entry_points | array[string] | Yes | Array of supported ERC-4337 entry point contract addresses |
 
-### Debug Endpoints
+### Runtime Modes
 
-**GET /debug_mempools**
-- Returns the current size of all mempools
-- Response: JSON object with array of mempool info containing:
+- **DEBUG**: Enables all debug RPC methods (`debug_mempools`, `debug_pause`, `debug_clear`)
+- **DEV**: Development mode (debug methods disabled)
+- **PROD**: Production mode (debug methods disabled)
+
+### Debug RPC Methods
+
+*Note: Debug RPC methods are only available when `mode` is set to `DEBUG`*
+
+**debug_mempools**
+- Returns detailed information about all mempools
+- Params: `[]` (no parameters)
+- Response: Array of mempool info containing:
   - `label`: Version label (MempoolV06, MempoolV07, MempoolV08)
   - `address`: Entry point address
   - `size`: Current number of user operations in the mempool
+  - `userops`: Array of all user operations in the mempool
+
+**debug_pause**
+- Toggles pause state of all processors
+- When paused, processors stop processing user operations (bundling and submitting)
+- User operations can still be added to mempools while paused
+- Params: `[]` (no parameters)
+- Response: JSON object with `paused` field (boolean) indicating new state
+
+**debug_clear**
+- Clears all user operations from all mempools
+- Params: `[]` (no parameters)
+- Response: JSON object with `cleared` count and `message` fields
 
 ### Curl Commands
 
 ```bash
 # Healthcheck
 curl http://localhost:3000/health
-
-# Debug: Get All Mempool Sizes
-curl http://localhost:3000/debug_mempools
 
 # eth_chainId Method
 curl -X POST http://localhost:3000 \
@@ -91,7 +114,7 @@ curl -X POST http://localhost:3000 \
 # eth_supportedEntryPoints Method
 curl -X POST http://localhost:3000 \
     -H "Content-Type: application/json" \
-    -d '{"jsonrpc":"2.0","method":"eth_supportedEntryPoints","params":[],"id":2}'
+    -d '{"jsonrpc":"2.0","method":"eth_supportedEntryPoints","params":[],"id":1}'
 
 # eth_sendUserOperation Method
 curl -X POST http://localhost:3000 \
@@ -121,4 +144,19 @@ curl -X POST http://localhost:3000 \
       ],
       "id": 1
     }'
+
+# debug_mempools Method (DEBUG mode only)
+curl -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"debug_mempools","params":[],"id":1}'
+
+# debug_pause Method (DEBUG mode only)
+curl -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"debug_pause","params":[],"id":1}'
+
+# debug_clear Method (DEBUG mode only)
+curl -X POST http://localhost:3000 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"debug_clear","params":[],"id":5}'
 ```

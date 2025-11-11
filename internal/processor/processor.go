@@ -4,12 +4,15 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/vorpalengineering/gundler/internal/types"
+	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
 type Processor interface {
 	Start(ctx context.Context) error
 	Stop() error
+	Pause()
+	Unpause()
+	IsPaused() bool
 }
 
 type Bundle struct {
