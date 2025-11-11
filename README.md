@@ -68,11 +68,12 @@ The config file must be a JSON file with the following fields:
 ### Debug Endpoints
 
 **GET /debug_mempools**
-- Returns the current size of all mempools
+- Returns detailed information about all mempools
 - Response: JSON object with array of mempool info containing:
   - `label`: Version label (MempoolV06, MempoolV07, MempoolV08)
   - `address`: Entry point address
   - `size`: Current number of user operations in the mempool
+  - `userops`: Array of all user operations in the mempool
 
 ### Curl Commands
 

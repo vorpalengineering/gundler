@@ -281,11 +281,11 @@ func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request
 	// Helper function to get version label from address
 	getVersionLabel := func(address string) string {
 		switch address {
-		case "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789":
+		case types.EntryPointV06Address.Hex():
 			return "MempoolV06"
-		case "0x0000000071727De22E5E9d8BAf0edAc6f37da032":
+		case types.EntryPointV07Address.Hex():
 			return "MempoolV07"
-		case "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108":
+		case types.EntryPointV08Address.Hex():
 			return "MempoolV08"
 		default:
 			return "MempoolUnknown"
@@ -294,9 +294,10 @@ func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request
 
 	// Build response with all mempools
 	type MempoolInfo struct {
-		Label   string `json:"label"`
-		Address string `json:"address"`
-		Size    int    `json:"size"`
+		Label   string                 `json:"label"`
+		Address string                 `json:"address"`
+		Size    int                    `json:"size"`
+		UserOps []*types.UserOperation `json:"userops"`
 	}
 
 	mempools := make([]MempoolInfo, 0, len(rpc.mempools))
@@ -305,6 +306,7 @@ func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request
 			Label:   getVersionLabel(address),
 			Address: address,
 			Size:    mempool.Size(),
+			UserOps: mempool.GetAll(),
 		})
 	}
 
