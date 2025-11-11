@@ -7,10 +7,12 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/mempool"
+	"github.com/vorpalengineering/gundler/internal/processor"
 	"github.com/vorpalengineering/gundler/internal/types"
 )
 
@@ -18,6 +20,7 @@ type RPCServer struct {
 	server               *http.Server
 	ethClient            *ethclient.Client
 	mempools             map[string]*mempool.Mempool // entryPointAddress => Mempool
+	processors           map[string]processor.Processor
 	chainID              *big.Int
 	supportedEntryPoints []string
 }
@@ -65,12 +68,21 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 		w.Write([]byte("OK"))
 	})
 
-	// Initialize mempools for configured entry points
+	// Initialize mempool and processor for each supported entrypoint
 	mempools := make(map[string]*mempool.Mempool, len(supportedEntryPoints))
+	processors := make(map[string]processor.Processor, len(supportedEntryPoints))
 	for _, epStr := range supportedEntryPoints {
+		// Create mempool
 		entryPoint := common.HexToAddress(epStr)
 		mempools[epStr] = mempool.NewMempool(entryPoint, chainID)
-		log.Printf("Initialized mempool for entry point: %s", epStr)
+
+		// Create processor
+		processors[epStr] = processor.NewBasicProcessor(mempools[epStr], ethClient, 1*time.Second)
+		if err := processors[epStr].Start(context.Background()); err != nil {
+			log.Fatalf("Failed to start processor: %v", err)
+		}
+
+		log.Printf("Initialized mempool and processor for entry point: %s", epStr)
 	}
 
 	rpc := &RPCServer{
@@ -80,12 +92,16 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 		},
 		ethClient:            ethClient,
 		mempools:             mempools,
+		processors:           processors,
 		chainID:              chainID,
 		supportedEntryPoints: supportedEntryPoints,
 	}
 
 	// Register base route
 	mux.HandleFunc("/", rpc.handleRPCRequest)
+
+	// Register debug endpoint
+	mux.HandleFunc("/debug_mempools", rpc.handleDebugMempools)
 
 	return rpc, nil
 }
@@ -108,6 +124,13 @@ func (rpc *RPCServer) Shutdown(ctx context.Context) error {
 	// Close ethereum client connection
 	if rpc.ethClient != nil {
 		rpc.ethClient.Close()
+	}
+
+	// Stop processors
+	for _, proc := range rpc.processors {
+		if err := proc.Stop(); err != nil {
+			log.Printf("Failed to stop processor: %v", err)
+		}
 	}
 
 	return rpc.server.Shutdown(ctx)
@@ -255,4 +278,50 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPointStr].Size())
 
 	return userOpHash.Hex(), nil
+}
+
+func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request) {
+	// Restrict to GET requests
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Helper function to get version label from address
+	getVersionLabel := func(address string) string {
+		switch address {
+		case "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789":
+			return "MempoolV06"
+		case "0x0000000071727De22E5E9d8BAf0edAc6f37da032":
+			return "MempoolV07"
+		case "0x4337084D9E255Ff0702461CF8895CE9E3b5Ff108":
+			return "MempoolV08"
+		default:
+			return "MempoolUnknown"
+		}
+	}
+
+	// Build response with all mempools
+	type MempoolInfo struct {
+		Label   string `json:"label"`
+		Address string `json:"address"`
+		Size    int    `json:"size"`
+	}
+
+	mempools := make([]MempoolInfo, 0, len(rpc.mempools))
+	for address, mempool := range rpc.mempools {
+		mempools = append(mempools, MempoolInfo{
+			Label:   getVersionLabel(address),
+			Address: address,
+			Size:    mempool.Size(),
+		})
+	}
+
+	// Return JSON response
+	response := map[string]interface{}{
+		"mempools": mempools,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

@@ -34,12 +34,6 @@ func main() {
 		log.Fatalf("Failed to start RPC Server: %v", err)
 	}
 
-	// Start processor
-	// processor := processor.NewBasicProcessor(mempool, ethClient, entryPoint, 1*time.Second)
-	// if err := processor.Start(context.Background()); err != nil {
-	// 	log.Fatalf("Failed to start processor: %v", err)
-	// }
-
 	fmt.Println("Gundler Startup Complete")
 
 	// Wait for interrupt signal
@@ -52,10 +46,6 @@ func main() {
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
-	// if err := processor.Stop(); err != nil {
-	// 	log.Printf("Failed to stop processor: %v", err)
-	// }
 
 	if err := rpc.Shutdown(ctx); err != nil {
 		log.Fatalf("RPC Server forced to shutdown: %v", err)

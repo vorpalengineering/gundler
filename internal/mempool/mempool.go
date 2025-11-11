@@ -80,9 +80,23 @@ func (pool *Mempool) RemoveByIndexRange(begin int, end int) error {
 	}
 
 	// Remove userOps in range
+	// TODO: fix this
 	pool.userOps = append(pool.userOps[:begin], pool.userOps[end:]...)
 
 	return nil
+}
+
+func (pool *Mempool) GetByIndex(index int) (*types.UserOperation, error) {
+	// Acquire read lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
+	// Validate index
+	if index < 0 || index >= len(pool.userOps) {
+		return nil, fmt.Errorf("index out of range")
+	}
+
+	return pool.userOps[index], nil
 }
 
 func (pool *Mempool) GetAll() []*types.UserOperation {
@@ -99,14 +113,14 @@ func (pool *Mempool) GetAll() []*types.UserOperation {
 }
 
 func (pool *Mempool) GetRange(begin int, end int) ([]*types.UserOperation, error) {
+	// Acquire read lock
+	pool.mutex.Lock()
+	defer pool.mutex.Unlock()
+
 	// Validate range bounds
 	if begin > end || end > len(pool.userOps) {
 		return nil, fmt.Errorf("invalid range bounds")
 	}
-
-	// Acquire read lock
-	pool.mutex.Lock()
-	defer pool.mutex.Unlock()
 
 	// Get user operations in range (inclusive)
 	ops := make([]*types.UserOperation, end-begin)

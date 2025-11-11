@@ -65,11 +65,23 @@ The config file must be a JSON file with the following fields:
 | beneficiary | string | Yes | Beneficiary address |
 | supported_entry_points | array[string] | Yes | Array of supported ERC-4337 entry point contract addresses |
 
+### Debug Endpoints
+
+**GET /debug_mempools**
+- Returns the current size of all mempools
+- Response: JSON object with array of mempool info containing:
+  - `label`: Version label (MempoolV06, MempoolV07, MempoolV08)
+  - `address`: Entry point address
+  - `size`: Current number of user operations in the mempool
+
 ### Curl Commands
 
 ```bash
 # Healthcheck
 curl http://localhost:3000/health
+
+# Debug: Get All Mempool Sizes
+curl http://localhost:3000/debug_mempools
 
 # eth_chainId Method
 curl -X POST http://localhost:3000 \

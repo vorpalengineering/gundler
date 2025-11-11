@@ -76,12 +76,15 @@ func (processor *BasicProcessor) processOnce(ctx context.Context) error {
 		return nil
 	}
 
-	// Create Bundle
-	userOpRange, err := processor.mempool.GetRange(0, mempoolSize)
+	// Create Bundle from mempool userops
+	// TODO: get multiple userops by range
+	userOp, err := processor.mempool.GetByIndex(0)
 	if err != nil {
-		return fmt.Errorf("error getting userOp range: %v", err)
+		return fmt.Errorf("error getting userOp by index: %v", err)
 	}
-	bundle := processor.createBundle(userOpRange)
+	userOps := make([]*types.UserOperation, 1)
+	userOps[0] = userOp
+	bundle := processor.createBundle(userOps)
 
 	// TODO: simulate bundle
 
@@ -106,9 +109,15 @@ func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *Bun
 }
 
 func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle) error {
+	log.Printf("Submitting bundle to chain... size: %v", len(bundle.UserOps))
+
 	// TODO: submit to chain and get result
 
-	// Remove userOp range from mempool
-	// processor.mempool.RemoveByIndexRange()
+	// Remove bundled userOps from mempool
+	err := processor.mempool.RemoveByIndex(0)
+	if err != nil {
+		return fmt.Errorf("error removing bundled userops")
+	}
+
 	return nil
 }
