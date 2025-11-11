@@ -1,21 +1,13 @@
 package rpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/vorpalengineering/gundler/internal/types"
 )
 
-func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request) {
-	// Restrict to GET requests
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (rpc *RPCServer) handleDebugMempools() (any, *RPCError) {
 	// Helper function to get version label from address
 	getVersionLabel := func(address string) string {
 		switch address {
@@ -48,22 +40,10 @@ func (rpc *RPCServer) handleDebugMempools(w http.ResponseWriter, r *http.Request
 		})
 	}
 
-	// Return JSON response
-	response := map[string]interface{}{
-		"mempools": mempools,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return mempools, nil
 }
 
-func (rpc *RPCServer) handleDebugPause(w http.ResponseWriter, r *http.Request) {
-	// Restrict to POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (rpc *RPCServer) handleDebugPause() (any, *RPCError) {
 	// Check current pause state (check first processor)
 	var isPaused bool
 	for _, proc := range rpc.processors {
@@ -86,22 +66,15 @@ func (rpc *RPCServer) handleDebugPause(w http.ResponseWriter, r *http.Request) {
 		log.Println("All processors paused")
 	}
 
-	// Return JSON response with new state
+	// Return response with new state
 	response := map[string]interface{}{
 		"paused": !isPaused,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return response, nil
 }
 
-func (rpc *RPCServer) handleDebugClear(w http.ResponseWriter, r *http.Request) {
-	// Restrict to POST requests
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
+func (rpc *RPCServer) handleDebugClear() (any, *RPCError) {
 	// Clear all mempools
 	clearedCount := 0
 	for _, mempool := range rpc.mempools {
@@ -112,12 +85,11 @@ func (rpc *RPCServer) handleDebugClear(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Cleared %d mempools", clearedCount)
 
-	// Return JSON response
+	// Return response
 	response := map[string]interface{}{
 		"cleared": clearedCount,
 		"message": fmt.Sprintf("%d mempools cleared", clearedCount),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return response, nil
 }

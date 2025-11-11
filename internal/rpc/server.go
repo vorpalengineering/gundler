@@ -23,6 +23,7 @@ type RPCServer struct {
 	processors           map[string]processor.Processor
 	chainID              *big.Int
 	supportedEntryPoints []string
+	mode                 string
 }
 
 type RPCRequest struct {
@@ -44,7 +45,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPCServer, error) {
+func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string, mode string) (*RPCServer, error) {
 	// Dial ethereum client
 	ethClient, err := ethclient.Dial(ethRPC)
 	if err != nil {
@@ -74,15 +75,16 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 	for _, epStr := range supportedEntryPoints {
 		// Create mempool
 		entryPoint := common.HexToAddress(epStr)
-		mempools[epStr] = mempool.NewMempool(entryPoint, chainID)
+		normalizedAddress := entryPoint.Hex()
+		mempools[normalizedAddress] = mempool.NewMempool(entryPoint, chainID)
 
 		// Create processor
-		processors[epStr] = processor.NewBasicProcessor(mempools[epStr], ethClient, 1*time.Second)
-		if err := processors[epStr].Start(context.Background()); err != nil {
+		processors[normalizedAddress] = processor.NewBasicProcessor(mempools[normalizedAddress], ethClient, 1*time.Second)
+		if err := processors[normalizedAddress].Start(context.Background()); err != nil {
 			log.Fatalf("Failed to start processor: %v", err)
 		}
 
-		log.Printf("Initialized mempool and processor for entry point: %s", epStr)
+		log.Printf("Initialized mempool and processor for entry point: %s", normalizedAddress)
 	}
 
 	rpc := &RPCServer{
@@ -95,15 +97,16 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 		processors:           processors,
 		chainID:              chainID,
 		supportedEntryPoints: supportedEntryPoints,
+		mode:                 mode,
 	}
 
 	// Register base route
 	mux.HandleFunc("/", rpc.handleRPCRequest)
 
-	// Register debug endpoints
-	mux.HandleFunc("/debug_mempools", rpc.handleDebugMempools)
-	mux.HandleFunc("/debug_pause", rpc.handleDebugPause)
-	mux.HandleFunc("/debug_clear", rpc.handleDebugClear)
+	// Log debug methods availability
+	if mode == "DEBUG" {
+		log.Println("Debug RPC methods enabled: debug_mempools, debug_pause, debug_clear")
+	}
 
 	return rpc, nil
 }
@@ -156,6 +159,7 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	var result any
 	var err *RPCError
 
+	// Handle standard RPC methods
 	switch req.Method {
 	case "eth_chainId":
 		result, err = rpc.handleChainId()
@@ -164,9 +168,26 @@ func (rpc *RPCServer) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	case "eth_sendUserOperation":
 		result, err = rpc.handleSendUserOperation(req.Params)
 	default:
-		err = &RPCError{
-			Code:    -32601,
-			Message: "Method not found",
+		// Check for debug methods if in DEBUG mode
+		if rpc.mode == "DEBUG" {
+			switch req.Method {
+			case "debug_mempools":
+				result, err = rpc.handleDebugMempools()
+			case "debug_pause":
+				result, err = rpc.handleDebugPause()
+			case "debug_clear":
+				result, err = rpc.handleDebugClear()
+			default:
+				err = &RPCError{
+					Code:    -32601,
+					Message: "Method not found",
+				}
+			}
+		} else {
+			err = &RPCError{
+				Code:    -32601,
+				Message: "Method not found",
+			}
 		}
 	}
 
@@ -257,8 +278,24 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 
 	// TODO: Validate UserOperation
 
-	// Add to mempool
-	if err := rpc.mempools[entryPointStr].Add(&userOp); err != nil {
+	// Add to mempool (use normalized address for lookup)
+	normalizedAddress := entryPoint.Hex()
+
+	// Check if mempool exists
+	mempool, exists := rpc.mempools[normalizedAddress]
+	if !exists {
+		// Log all available mempool keys for debugging
+		log.Printf("Mempool not found! Available mempool keys:")
+		for key := range rpc.mempools {
+			log.Printf("  - %s", key)
+		}
+		return "", &RPCError{
+			Code:    -32602,
+			Message: fmt.Sprintf("No mempool found for entry point: %s", normalizedAddress),
+		}
+	}
+
+	if err := mempool.Add(&userOp); err != nil {
 		return "", &RPCError{
 			Code:    -32602,
 			Message: fmt.Sprintf("Failed adding userOp to mempool: %v", err),
@@ -268,7 +305,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// Calculate userOp hash
 	userOpHash := userOp.Hash(entryPoint, rpc.chainID)
 
-	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPointStr].Size())
+	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), mempool.Size())
 
 	return userOpHash.Hex(), nil
 }

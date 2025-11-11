@@ -26,7 +26,12 @@ func main() {
 	cfg.Print()
 
 	// Start RPC Server
-	rpc, err := rpc.NewRPCServer(cfg.Port, cfg.EthereumRPC, cfg.SupportedEntryPoints)
+	rpc, err := rpc.NewRPCServer(
+		cfg.Port,
+		cfg.EthereumRPC,
+		cfg.SupportedEntryPoints,
+		string(cfg.Mode),
+	)
 	if err != nil {
 		log.Fatalf("Failed to create RPC Server: %v", err)
 	}
