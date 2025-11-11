@@ -5,6 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/vorpalengineering/gundler/internal/types"
 )
 
 type GundlerConfig struct {
@@ -52,6 +55,13 @@ func (cfg *GundlerConfig) Validate() error {
 	}
 	if len(cfg.SupportedEntryPoints) == 0 {
 		return fmt.Errorf("supported_entry_points must contain at least one entry point address")
+	}
+	for _, epStr := range cfg.SupportedEntryPoints {
+		entryPoint := common.HexToAddress(epStr)
+		err := types.ValidateEntryPointAddress(entryPoint)
+		if err != nil {
+			return fmt.Errorf("entrypoint address %s is invalid", epStr)
+		}
 	}
 
 	return nil

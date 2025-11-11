@@ -17,7 +17,7 @@ import (
 type RPCServer struct {
 	server               *http.Server
 	ethClient            *ethclient.Client
-	mempools             map[common.Address]*mempool.Mempool // entryPointAddress => Mempool
+	mempools             map[string]*mempool.Mempool // entryPointAddress => Mempool
 	chainID              *big.Int
 	supportedEntryPoints []string
 }
@@ -66,10 +66,10 @@ func NewRPCServer(port uint, ethRPC string, supportedEntryPoints []string) (*RPC
 	})
 
 	// Initialize mempools for configured entry points
-	mempools := make(map[common.Address]*mempool.Mempool, len(supportedEntryPoints))
+	mempools := make(map[string]*mempool.Mempool, len(supportedEntryPoints))
 	for _, epStr := range supportedEntryPoints {
 		entryPoint := common.HexToAddress(epStr)
-		mempools[entryPoint] = mempool.NewMempool(entryPoint, chainID)
+		mempools[epStr] = mempool.NewMempool(entryPoint, chainID)
 		log.Printf("Initialized mempool for entry point: %s", epStr)
 	}
 
@@ -242,7 +242,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// TODO: Validate UserOperation
 
 	// Add to mempool
-	if err := rpc.mempools[entryPoint].Add(&userOp); err != nil {
+	if err := rpc.mempools[entryPointStr].Add(&userOp); err != nil {
 		return "", &RPCError{
 			Code:    -32602,
 			Message: fmt.Sprintf("Failed adding userOp to mempool: %v", err),
@@ -252,7 +252,7 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 	// Calculate userOp hash
 	userOpHash := userOp.Hash(entryPoint, rpc.chainID)
 
-	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPoint].Size())
+	log.Printf("UserOp %s validated and added to mempool. Mempool size: %v", userOpHash.Hex(), rpc.mempools[entryPointStr].Size())
 
 	return userOpHash.Hex(), nil
 }
