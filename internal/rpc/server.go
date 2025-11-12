@@ -14,6 +14,7 @@ import (
 	"github.com/vorpalengineering/gundler/internal/keypool"
 	"github.com/vorpalengineering/gundler/internal/mempool"
 	"github.com/vorpalengineering/gundler/internal/processor"
+	"github.com/vorpalengineering/gundler/internal/simulation"
 	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
@@ -56,6 +57,9 @@ func NewRPCServer(
 		normalizedAddress := entryPoint.Hex()
 		mempools[normalizedAddress] = mempool.NewMempool(entryPoint, chainID)
 
+		// Create simulator for this processor
+		simulator := simulation.NewSimulator(ethClient, chainID)
+
 		// Create processor
 		processors[normalizedAddress] = processor.NewBasicProcessor(
 			mempools[normalizedAddress],
@@ -63,6 +67,7 @@ func NewRPCServer(
 			1*time.Second,
 			maxBundleSize,
 			keyPool,
+			simulator,
 		)
 		if err := processors[normalizedAddress].Start(context.Background()); err != nil {
 			log.Fatalf("Failed to start processor: %v", err)
