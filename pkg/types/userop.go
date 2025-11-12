@@ -169,6 +169,63 @@ func (userOp *UserOperation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (userOp *UserOperation) Validate() error {
+	// Validate sender address is not zero
+	if userOp.Sender == (common.Address{}) {
+		return fmt.Errorf("sender address cannot be zero")
+	}
+
+	// Validate nonce is not nil
+	if userOp.Nonce == nil {
+		return fmt.Errorf("nonce cannot be nil")
+	}
+
+	// Validate gas limits are not nil and > 0
+	if userOp.CallGasLimit == nil || userOp.CallGasLimit.Sign() <= 0 {
+		return fmt.Errorf("callGasLimit must be greater than 0")
+	}
+	if userOp.VerificationGasLimit == nil || userOp.VerificationGasLimit.Sign() <= 0 {
+		return fmt.Errorf("verificationGasLimit must be greater than 0")
+	}
+	if userOp.PreVerificationGas == nil || userOp.PreVerificationGas.Sign() <= 0 {
+		return fmt.Errorf("preVerificationGas must be greater than 0")
+	}
+
+	// Validate gas fees are not nil and > 0
+	if userOp.MaxFeePerGas == nil || userOp.MaxFeePerGas.Sign() <= 0 {
+		return fmt.Errorf("maxFeePerGas must be greater than 0")
+	}
+	if userOp.MaxPriorityFeePerGas == nil || userOp.MaxPriorityFeePerGas.Sign() <= 0 {
+		return fmt.Errorf("maxPriorityFeePerGas must be greater than 0")
+	}
+
+	// Validate maxPriorityFeePerGas <= maxFeePerGas
+	if userOp.MaxPriorityFeePerGas.Cmp(userOp.MaxFeePerGas) > 0 {
+		return fmt.Errorf("maxPriorityFeePerGas cannot be greater than maxFeePerGas")
+	}
+
+	// Validate paymaster-related fields
+	if userOp.Paymaster != (common.Address{}) {
+		// If paymaster is set, gas limits must be set
+		if userOp.PaymasterVerificationGasLimit == nil || userOp.PaymasterVerificationGasLimit.Sign() <= 0 {
+			return fmt.Errorf("paymasterVerificationGasLimit must be greater than 0 when paymaster is set")
+		}
+		if userOp.PaymasterPostOpGasLimit == nil || userOp.PaymasterPostOpGasLimit.Sign() <= 0 {
+			return fmt.Errorf("paymasterPostOpGasLimit must be greater than 0 when paymaster is set")
+		}
+	}
+
+	// Validate factory-related fields
+	if userOp.Factory != (common.Address{}) {
+		// If factory is set, factoryData should not be empty
+		if len(userOp.FactoryData) == 0 {
+			return fmt.Errorf("factoryData cannot be empty when factory is set")
+		}
+	}
+
+	return nil
+}
+
 func packAccountGasLimits(verificationGasLimit *big.Int, callGasLimit *big.Int) [32]byte {
 	var accountGasLimits [32]byte
 

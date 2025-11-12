@@ -262,7 +262,13 @@ func (rpc *RPCServer) handleSendUserOperation(params json.RawMessage) (string, *
 		}
 	}
 
-	// TODO: Validate UserOperation
+	// Validate UserOperation
+	if err := userOp.Validate(); err != nil {
+		return "", &types.RPCError{
+			Code:    -32602,
+			Message: fmt.Sprintf("Invalid UserOperation: %v", err),
+		}
+	}
 
 	// Add to mempool (use normalized address for lookup)
 	normalizedAddress := entryPoint.Hex()
