@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/internal/keypool"
 	"github.com/vorpalengineering/gundler/internal/mempool"
+	"github.com/vorpalengineering/gundler/internal/simulation"
 	"github.com/vorpalengineering/gundler/pkg/types"
 )
 
@@ -23,6 +24,7 @@ type BasicProcessor struct {
 	pauseMutex    sync.RWMutex
 	maxBundleSize uint
 	keyPool       *keypool.KeyPool
+	simulator     *simulation.Simulator
 }
 
 func NewBasicProcessor(
@@ -31,6 +33,7 @@ func NewBasicProcessor(
 	interval time.Duration,
 	maxBundleSize uint,
 	keyPool *keypool.KeyPool,
+	simulator *simulation.Simulator,
 ) *BasicProcessor {
 	return &BasicProcessor{
 		mempool:       mempool,
@@ -40,6 +43,7 @@ func NewBasicProcessor(
 		doneChannel:   make(chan struct{}),
 		maxBundleSize: maxBundleSize,
 		keyPool:       keyPool,
+		simulator:     simulator,
 	}
 }
 
@@ -106,7 +110,18 @@ func (processor *BasicProcessor) processOnce(ctx context.Context) error {
 	// Create Bundle from mempool userops
 	bundle := processor.createBundle(userOps)
 
-	// TODO: simulate bundle
+	// Simulate bundle
+	simResult, err := processor.simulator.SimulateBundle(ctx, bundle)
+	if err != nil {
+		return fmt.Errorf("error simulating bundle: %v", err)
+	}
+
+	if !simResult.Success {
+		log.Printf("Bundle simulation failed: %v", simResult.Error)
+		return fmt.Errorf("bundle simulation failed: %v", simResult.Error)
+	}
+
+	log.Printf("Bundle simulation successful, gas used: %d", simResult.GasUsed)
 
 	// Submit Bundle to Chain
 	err = processor.submitBundle(ctx, bundle, bundleSize)
@@ -117,18 +132,18 @@ func (processor *BasicProcessor) processOnce(ctx context.Context) error {
 	return nil
 }
 
-func (processor *BasicProcessor) createBundle(userOps []*types.UserOperation) *Bundle {
-	return &Bundle{
+func (processor *BasicProcessor) createBundle(userOps []*types.UserOperation) *types.Bundle {
+	return &types.Bundle{
 		UserOps:    userOps,
 		EntryPoint: processor.mempool.EntryPoint,
 	}
 }
 
-func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *Bundle) error {
+func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *types.Bundle) error {
 	return nil
 }
 
-func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *Bundle, bundleSize int) error {
+func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *types.Bundle, bundleSize int) error {
 	log.Printf("Submitting bundle to chain... size: %v", len(bundle.UserOps))
 
 	// TODO: Build actual transaction for EntryPoint.handleOps() call
