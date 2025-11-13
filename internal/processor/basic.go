@@ -132,18 +132,18 @@ func (processor *BasicProcessor) processOnce(ctx context.Context) error {
 	return nil
 }
 
-func (processor *BasicProcessor) createBundle(userOps []*types.UserOperation) *simulation.Bundle {
-	return &simulation.Bundle{
+func (processor *BasicProcessor) createBundle(userOps []*types.UserOperation) *types.Bundle {
+	return &types.Bundle{
 		UserOps:    userOps,
 		EntryPoint: processor.mempool.EntryPoint,
 	}
 }
 
-func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *simulation.Bundle) error {
+func (processor *BasicProcessor) simulateBundle(ctx context.Context, bundle *types.Bundle) error {
 	return nil
 }
 
-func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *simulation.Bundle, bundleSize int) error {
+func (processor *BasicProcessor) submitBundle(ctx context.Context, bundle *types.Bundle, bundleSize int) error {
 	log.Printf("Submitting bundle to chain... size: %v", len(bundle.UserOps))
 
 	// TODO: Build actual transaction for EntryPoint.handleOps() call

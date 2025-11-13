@@ -4,15 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/vorpalengineering/gundler/pkg/types"
 )
-
-type Bundle struct {
-	UserOps    []*types.UserOperation
-	EntryPoint common.Address
-}
 
 type SimulationResult struct {
 	Success bool
@@ -32,7 +26,7 @@ func NewSimulator(ethClient *ethclient.Client, chainID *big.Int) *Simulator {
 	}
 }
 
-func (s *Simulator) SimulateBundle(ctx context.Context, bundle *Bundle) (*SimulationResult, error) {
+func (s *Simulator) SimulateBundle(ctx context.Context, bundle *types.Bundle) (*SimulationResult, error) {
 	// TODO: Implement actual simulation logic
 	// For now, return a placeholder success result
 	return &SimulationResult{

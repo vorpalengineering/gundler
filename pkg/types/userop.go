@@ -41,6 +41,11 @@ type PackedUserOperation struct {
 	Signature          []byte         `json:"signature"`
 }
 
+type Bundle struct {
+	UserOps    []*UserOperation
+	EntryPoint common.Address
+}
+
 var PACKED_USEROP_TYPEHASH common.Hash = crypto.Keccak256Hash(
 	[]byte("PackedUserOperation(address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData)"),
 )

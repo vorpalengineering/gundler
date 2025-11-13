@@ -2,8 +2,6 @@ package types
 
 import "encoding/json"
 
-// Shared JSON-RPC types for Gundler client and server
-
 type RPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
 	Method  string          `json:"method"`
